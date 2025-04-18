@@ -28,5 +28,5 @@ if __name__ == '__main__':
             "DoL 汉化脚本运行完啦",
             f"耗时 {last or -1:.2f}s"
         ],
-        logo=settings.file.resource / "img" / "dol-chs.webp"
+        logo=settings.file.resource / "img" / "dol-chs.png"
     ).notify()
