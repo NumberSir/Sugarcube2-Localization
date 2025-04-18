@@ -1,3 +1,5 @@
+# ===== WIP =====
+
 为没有提供本地化方式的 SugarCube2 引擎的开源游戏提供一种粗暴的本地化方式。
 
 配合 SugarCube-2-ModLoader 使用。
