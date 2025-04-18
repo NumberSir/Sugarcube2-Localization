@@ -1,0 +1,6 @@
+[submodule "degrees-of-lewdity"]
+	path = repositories/degrees-of-lewdity
+	url = https://gitgud.io/Vrelnir/degrees-of-lewdity.git
+[submodule "degrees-of-lewdity-plus"]
+	path = repositories/degrees-of-lewdity-plus
+	url = https://gitgud.io/Frostberg/degrees-of-lewdity-plus
