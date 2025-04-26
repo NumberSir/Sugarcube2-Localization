@@ -9,6 +9,7 @@ from src.toast import Toaster
 
 
 class UpdateParse:
+    """TODO"""
     def __init__(self):
         self._i18n: dict | None = None
         self._i18n_by_passage: dict | None = None
