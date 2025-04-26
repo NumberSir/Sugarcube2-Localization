@@ -53,8 +53,8 @@ class TwineParser(Parser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self._all_passages: list[dict[str, str]] = None # 段落信息
-        self._all_elements: list[dict[str, str]] = None # 基本元素信息
+        self._all_passages: list[dict[str, str]] | None = None # 段落信息
+        self._all_elements: list[dict[str, str]] | None = None # 基本元素信息
 
     def get_all_filepaths(self) -> list[Path]:
         self.all_filepaths = [
@@ -97,7 +97,7 @@ class TwineParser(Parser):
             passage_data = [
                 {
                     "filepath": filepath_relative.__str__(),
-                    "passage_title": passage_titles[idx],
+                    "passage_title": passage_titles[idx].strip(),
                     "passage_tag": passage_tags[idx].strip("[]") if passage_tags[idx] else None,
                     "passage_text": passage_texts[idx]
                 }
@@ -120,18 +120,30 @@ class TwineParser(Parser):
             title = passage["passage_title"]
             content = passage["passage_text"]
 
-            elements = [
-                {
+            elements = []
+            flag = False
+            for pattern in {Patterns.COMMENT, Patterns.MACRO, Patterns.TAG}:
+                for match in re.finditer(pattern.value, content):
+                    flag = True
+                    elements.append({
+                        "filepath": filepath,
+                        "passage_title": title,
+                        "type": pattern.name,
+                        "element": match.group(),
+                        "pos_start": match.start(),
+                        "pos_end": match.end()
+                    })
+
+            if not flag:  # 只有纯文本
+                elements.append({
                     "filepath": filepath,
                     "passage_title": title,
-                    "type": pattern.name,
-                    "element": match.group(),
-                    "pos_start": match.start(),
-                    "pos_end": match.end()
-                }
-                for pattern in {Patterns.COMMENT, Patterns.MACRO, Patterns.TAG}
-                for match in re.finditer(pattern.value, content)
-            ]
+                    "type": "TEXT",
+                    "element": content,
+                    "pos_start": 0,
+                    "pos_end": len(content)
+                })
+
             elements = self._sort_elements(elements)
             elements = self._filter_comment_inside(elements)
             elements = self._fill_plaintexts(elements, filepath, content, title)
@@ -173,7 +185,7 @@ class TwineParser(Parser):
         """经过处理后，夹在两个元素之间的就是纯文本"""
         elements_copy = elements.copy()
         for idx, element in enumerate(elements_copy):
-            # 向前判断
+            # 向前判断一次
             # 在开头之前可能有纯文本
             if idx == 0 < element["pos_start"]:
                 text = content[:element["pos_start"]]
@@ -188,7 +200,7 @@ class TwineParser(Parser):
                     "pos_end": pos_end,
                 })
 
-            # 向后判断
+            # 向后判断一次
             # 非开头 非末尾
             if idx < len(elements_copy) - 1:
                 # 前后两元素中间没有内容
@@ -247,9 +259,9 @@ class JavaScriptParser(Parser):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
     parser = TwineParser(
-        game_root=settings.file.root / settings.file.repo / DefaultGames.degrees_of_lewdity_plus.value
+        # game_root=settings.file.root / settings.file.repo / DefaultGames.degrees_of_lewdity_plus.value
+        game_root=settings.file.root / settings.file.repo / DefaultGames.degrees_of_lewdity.value
     )
     paths = parser.get_all_filepaths()
     parser.get_all_passages_info()

@@ -4,7 +4,6 @@ from zipfile import ZipFile
 
 import httpx
 
-from src.log import logger
 from src.config import settings
 
 class Paratranz:
@@ -22,34 +21,22 @@ class Paratranz:
 
     async def _trigger_export(self):
         """触发导出压缩包"""
-        logger.info(f"===== 开始导出汉化文件 ...")
-
         url = f"{self.base_url}/projects/{self._project_id}/artifacts"
         headers = {"Authorization": settings.paratranz.token}
         httpx.post(url, headers=headers, verify=False)
 
-        logger.info(f"##### 汉化文件已导出 !\n")
-
     async def _download_artifacts(self):
         """下载导出的压缩包"""
-        logger.info(f"===== 开始下载汉化文件 ...")
-
         url = f"{self.base_url}/projects/{self._project_id}/artifacts/download"
         headers = {"Authorization": settings.paratranz.token}
         content = (await self.client.get(url, headers=headers, follow_redirects=True)).content
         with open(settings.file.tmp / f"paratranz_export.zip", "wb") as fp:
             fp.write(content)
 
-        logger.info(f"##### 汉化文件已下载 !\n")
-
     async def _extract_artifacts(self):
         """解压下载好的压缩包"""
-        logger.info(f"===== 开始解压汉化文件 ...")
-
         with ZipFile(settings.file.tmp / f"paratranz_export.zip") as zfp:
             zfp.extractall(settings.file.paratranz)
-
-        logger.info(f"##### 汉化文件已解压 !\n")
 
     @property
     def client(self) -> httpx.AsyncClient:
