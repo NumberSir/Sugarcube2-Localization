@@ -15,12 +15,13 @@ import re
 from enum import Enum
 from pathlib import Path
 
+from src import GameRootNotExistException
 from src.config import settings, DefaultGames
 from src.log import logger
 
 
 class Patterns(Enum):
-    """正则"""
+    """Regexes"""
     PASSAGE_HEAD = re.compile(r""":: ?([\-\w.\'\"/& ]+) ?(\[[\S ]+])?\n""")
     COMMENT = re.compile(r"""(?:/\*|<!--)[\s\S]+?(?:\*/|-->)""")
     MACRO = re.compile(r"""<</?([\w=\-]+)(?:\s+((?:(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|(?://.*\n)|(?:`(?:\\.|[^`\\\n])*?`)|(?:"(?:\\.|[^"\\\n])*?")|(?:'(?:\\.|[^'\\\n])*?')|(?:\[(?:[<>]?[Ii][Mm][Gg])?\[[^\r\n]*?]]+)|[^>]|(?:>(?!>)))*?))?>>""")
@@ -29,11 +30,11 @@ class Patterns(Enum):
 
 class Parser:
     def __init__(self, game_root: Path = settings.file.root / settings.file.repo / DefaultGames.degrees_of_lewdity.value):
-        self._game_root: Path = game_root       # 需要汉化的游戏内容根目录，默认 DoL
-        self._all_filepaths: list[Path] = []    # 所有文件绝对路径
+        self._game_root: Path = game_root       # 需要汉化的游戏内容根目录，默认 DoL | Root path for the game needed to be localized, DoL as default
+        self._all_filepaths: list[Path] = []    # 所有文件绝对路径 | Absolute paths for all the files
+        logger.debug(f"Game root: {self._game_root}")
 
     def get_all_filepaths(self) -> list[Path]:
-        """获取所有需要提取的文件绝对路径"""
         raise NotImplementedError
 
     @property
@@ -53,10 +54,16 @@ class TwineParser(Parser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self._all_passages: list[dict[str, str]] | None = None # 段落信息
-        self._all_elements: list[dict[str, str]] | None = None # 基本元素信息
+        self._all_passages: list[dict[str, str]] | None = None
+        self._all_passages_by_passage: dict[str, dict[str, str]] | None = None
+
+        self._all_elements: list[dict[str, str]] | None = None
+        self._all_elements_by_passage: dict[str, list[dict[str, str]]] | None = None
 
     def get_all_filepaths(self) -> list[Path]:
+        if not self.game_root.exists():
+            raise GameRootNotExistException
+
         self.all_filepaths = [
             Path(root) / file
             for root, dirs, files in os.walk(self.game_root)
@@ -66,14 +73,14 @@ class TwineParser(Parser):
         return self.all_filepaths
 
     def get_all_passages_info(self) -> list[dict[str, str]]:
-        """获取所有段落信息"""
-        result = []
+        all_passages = []
+        all_passages_by_passage = {}
         for filepath in self.all_filepaths:
             filepath_relative = filepath.relative_to(self.game_root)
             with open(filepath, "r", encoding="utf-8") as fp:
                 content = fp.read()
 
-            # 有些文件为空
+            # Some files are blank
             if not content:
                 continue
 
@@ -94,67 +101,94 @@ class TwineParser(Parser):
                 for full in passage_fulls
             ]  # 段落主体
 
-            passage_data = [
+            all_passages_part = [
                 {
                     "filepath": filepath_relative.__str__(),
                     "passage_title": passage_titles[idx].strip(),
                     "passage_tag": passage_tags[idx].strip("[]") if passage_tags[idx] else None,
-                    "passage_text": passage_texts[idx]
+                    "passage_text": passage_texts[idx],
+                    "length": len(passage_texts[idx])
                 }
                 for idx, _ in enumerate(passage_fulls)
             ]
-            result.extend(passage_data)
 
-        logger.debug(f"passages count: {len(result)}")
+            all_passages.extend(all_passages_part)
+
         with open(settings.file.root / settings.file.data / "all_passages.json", "w", encoding="utf-8") as fp:
-            json.dump(result, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
+            json.dump(all_passages, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
-        self.all_passages = result
-        return result
+        all_passages_by_passage = {
+            passage_data["passage_title"]: passage_data
+            for passage_data in all_passages
+        }
+        with open(settings.file.root / settings.file.data / "all_passages_by_passage.json", "w", encoding="utf-8") as fp:
+            json.dump(all_passages_by_passage, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
+
+        self.all_passages = all_passages
+        self.all_passages_by_passage = all_passages_by_passage
+
+        logger.debug(f"passages: {len(all_passages)}")
+        logger.debug(f"maximum length: {max([_['length'] for _ in all_passages])}")
+        logger.debug(f"minimum length: {min([_['length'] for _ in all_passages])}")
+        return all_passages
 
     def get_all_elements_info(self) -> list[dict[str, str]]:
-        """获取所有基础元素信息"""
-        result = []
+        all_elements = []
         for passage in self.all_passages:
             filepath = passage["filepath"]
             title = passage["passage_title"]
             content = passage["passage_text"]
 
-            elements = []
+            all_elements_part = []
             flag = False
             for pattern in {Patterns.COMMENT, Patterns.MACRO, Patterns.TAG}:
                 for match in re.finditer(pattern.value, content):
                     flag = True
-                    elements.append({
+                    all_elements_part.append({
                         "filepath": filepath,
                         "passage_title": title,
                         "type": pattern.name,
                         "element": match.group(),
                         "pos_start": match.start(),
-                        "pos_end": match.end()
+                        "pos_end": match.end(),
+                        "length": match.end() - match.start()
                     })
 
             if not flag:  # 只有纯文本
-                elements.append({
+                all_elements_part.append({
                     "filepath": filepath,
                     "passage_title": title,
                     "type": "TEXT",
                     "element": content,
                     "pos_start": 0,
-                    "pos_end": len(content)
+                    "pos_end": len(content),
+                    "length": len(content)
                 })
 
-            elements = self._sort_elements(elements)
-            elements = self._filter_comment_inside(elements)
-            elements = self._fill_plaintexts(elements, filepath, content, title)
-            result.extend(elements)
+            all_elements_part = self._sort_elements(all_elements_part)
+            all_elements_part = self._filter_elements_inside_another(all_elements_part)
+            all_elements_part = self._fill_plaintexts(all_elements_part, filepath, content, title)
+            all_elements.extend(all_elements_part)
 
         with open(settings.file.root / settings.file.data / "all_elements.json", "w", encoding="utf-8") as fp:
-            json.dump(result, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
+            json.dump(all_elements, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
-        logger.debug(f"elements count: {len(result)}")
-        self.all_elements = result
-        return result
+        all_elements_by_passage = {}
+        for idx, element in enumerate(all_elements):
+            if element["passage_title"] not in all_elements_by_passage:
+                all_elements_by_passage[element["passage_title"]] = [element]
+            else:
+                all_elements_by_passage[element["passage_title"]].append(element)
+        with open(settings.file.root / settings.file.data / "all_elements_by_passage.json", "w", encoding="utf-8") as fp:
+            json.dump(all_elements_by_passage, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
+
+        self.all_elements = all_elements
+        self.all_elements_by_passage = all_elements_by_passage
+
+        logger.debug(f"elements: {len(all_elements)}")
+        logger.debug(f"maximum length: {max([_['length'] for _ in all_elements])}")
+        logger.debug(f"minimum length: {min([_['length'] for _ in all_elements])}")
+        return all_elements
 
     @staticmethod
     def _sort_elements(elements: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -162,23 +196,20 @@ class TwineParser(Parser):
         return sorted(elements, key=lambda elem: elem["pos_start"])
 
     @staticmethod
-    def _filter_comment_inside(elements: list[dict[str, str] | None]) -> list[dict[str, str]]:
-        """因为按照正则提取，有些在注释里的内容也被抓出来了，把这部分内容去掉"""
+    def _filter_elements_inside_another(elements: list[dict[str, str] | None]) -> list[dict[str, str]]:
+        """因为按照正则提取，有些在某一元素里的另一元素被当做独立元素抓出来了，把这部分内容去掉"""
         elements_copy = elements.copy()
         for idx, element in enumerate(elements_copy):
-            if element["type"] != Patterns.COMMENT.name:
-                continue
-
             for i in range(len(elements_copy) - idx):
-                if i == 0:
-                    continue
-
-                # 因为按照 pos_start 排序过了，所以被注释包裹的元素一定在注释的后面
-                # 因此当出现后者开头小于前者结尾时一定是前者是注释，而后者是被注释包住的元素
-                if elements_copy[idx + i]["pos_start"] < element["pos_end"]:
-                    elements[idx + i] = None
+                # 因为按照 pos_start 排序过了，所以被包裹住的元素开头一定在当前元素开头的后面
+                # 因此当出现后者开头小于当前元素结尾时，后者是被当前元素包裹住的元素
+                if elements_copy[idx+i]["pos_start"] < element["pos_end"]:
+                    if i == 0:
+                        continue
+                    elements[idx+i] = None
 
         return [_ for _ in elements if _ is not None]
+
 
     @staticmethod
     def _fill_plaintexts(elements: list[dict[str, str | int]], filepath: str, content: str, title: str) -> list[dict[str, str]]:
@@ -198,6 +229,7 @@ class TwineParser(Parser):
                     "element": text,
                     "pos_start": pos_start,
                     "pos_end": pos_end,
+                    "length": pos_end - pos_start
                 })
 
             # 向后判断一次
@@ -228,6 +260,7 @@ class TwineParser(Parser):
                 "element": text,
                 "pos_start": pos_start,
                 "pos_end": pos_end,
+                "length": pos_end - pos_start
             })
         return TwineParser._sort_elements(elements)
 
@@ -238,6 +271,22 @@ class TwineParser(Parser):
     @all_passages.setter
     def all_passages(self, passages: list[dict[str, str]]) -> None:
         self._all_passages = passages
+
+    @property
+    def all_passages_by_passage(self) -> dict[str, dict[str, str]]:
+        return self._all_passages_by_passage
+
+    @all_passages_by_passage.setter
+    def all_passages_by_passage(self, passages_by_passage: dict[str, dict[str, str]]) -> None:
+        self._all_passages_by_passage = passages_by_passage
+
+    @property
+    def all_elements_by_passage(self) -> dict[str, list[dict[str, str]]]:
+        return self._all_elements_by_passage
+
+    @all_elements_by_passage.setter
+    def all_elements_by_passage(self, elements_by_passage: dict[str, list[dict[str, str]]]) -> None:
+        self._all_elements_by_passage = elements_by_passage
 
     @property
     def all_elements(self) -> list[dict[str, str]]:

@@ -20,13 +20,11 @@ class Paratranz:
         await self._extract_artifacts()
 
     async def _trigger_export(self):
-        """触发导出压缩包"""
         url = f"{self.base_url}/projects/{self._project_id}/artifacts"
         headers = {"Authorization": settings.paratranz.token}
         httpx.post(url, headers=headers, verify=False)
 
     async def _download_artifacts(self):
-        """下载导出的压缩包"""
         url = f"{self.base_url}/projects/{self._project_id}/artifacts/download"
         headers = {"Authorization": settings.paratranz.token}
         content = (await self.client.get(url, headers=headers, follow_redirects=True)).content
@@ -34,7 +32,6 @@ class Paratranz:
             fp.write(content)
 
     async def _extract_artifacts(self):
-        """解压下载好的压缩包"""
         with ZipFile(settings.file.tmp / f"paratranz_export.zip") as zfp:
             zfp.extractall(settings.file.paratranz)
 

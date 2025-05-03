@@ -9,18 +9,18 @@ from src.config import settings
 
 
 class Toaster:
-    def __init__(self, title: str = settings.project.name, body: list[str] = None, logo: Path = None):
+    def __init__(self, title: str = settings.project.name, body: str = "Done", logo: Path = None):
         self._title = title
-        self._body = body or ["Done!"]
+        self._body = body
         self._logo = logo
 
     def _windows(self):
-        """actually, win11"""
+        """actually, win10 & win11"""
         toast_main = WindowsToaster(applicationText=self.title)
         logo = ToastDisplayImage.fromPath(self.logo)
         logo.position = ToastImagePosition.AppLogo
         toast_body = Toast(
-            text_fields=self.body,
+            text_fields=[self.body],
             images=[logo]
         )
         toast_main.show_toast(toast_body)
@@ -49,7 +49,7 @@ class Toaster:
         return self._title
 
     @property
-    def body(self) -> list[str]:
+    def body(self) -> str:
         return self._body
 
     @property

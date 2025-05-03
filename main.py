@@ -3,7 +3,7 @@ import time
 
 import httpx
 
-from src.core import Paratranz
+from src.tools.paratranz import Paratranz
 from src.config import settings
 from src.log import logger
 from src.toast import Toaster
@@ -24,9 +24,10 @@ if __name__ == '__main__':
 
     Toaster(
         title="DoL 汉化脚本",
-        body=[
-            "DoL 汉化脚本运行完啦",
+        body=(
+            "DoL 汉化脚本运行完啦"
+            "\n"
             f"耗时 {last or -1:.2f}s"
-        ],
-        logo=settings.file.resource / "img" / "dol-chs.png"
+        ),
+        logo=settings.file.resource / "img" / "dol-chs.ico"
     ).notify()
