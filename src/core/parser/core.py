@@ -1,13 +1,11 @@
 """
-标题 --- :: ?([\S ]+)\s?(\[[\S ]+])?\s?(\{[\s\S]+})?
 1. Twine
 1.1. 获取文件绝对路径 (按文件进行一级分割)
 1.2. 获取段落信息 (按段落进行二级分割)
 1.3. 获取基础元素信息 (comment, head, macro, tag, script, 剩下的就是 plain text)
-1.4. 将成对元素初次组合 (按基础元素进行四级分割)
-1.5. 按照字数二次组合 (按字数进行三级分割)
-1.6. 修改为可导入 paratranz 的格式
-1.7. 导出为 json 文件
+1.4. ？将元素组合？
+1.5. 修改为可导入 paratranz 的格式
+1.6. 导出为 json 文件
 """
 import ujson as json
 import os
@@ -192,7 +190,6 @@ class TwineParser(Parser):
 
     @staticmethod
     def _sort_elements(elements: list[dict[str, str]]) -> list[dict[str, str]]:
-        """按照位置顺序排列元素"""
         return sorted(elements, key=lambda elem: elem["pos_start"])
 
     @staticmethod
@@ -201,11 +198,11 @@ class TwineParser(Parser):
         elements_copy = elements.copy()
         for idx, element in enumerate(elements_copy):
             for i in range(len(elements_copy) - idx):
+                if i == 0:
+                    continue
                 # 因为按照 pos_start 排序过了，所以被包裹住的元素开头一定在当前元素开头的后面
                 # 因此当出现后者开头小于当前元素结尾时，后者是被当前元素包裹住的元素
                 if elements_copy[idx+i]["pos_start"] < element["pos_end"]:
-                    if i == 0:
-                        continue
                     elements[idx+i] = None
 
         return [_ for _ in elements if _ is not None]
