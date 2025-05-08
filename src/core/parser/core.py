@@ -7,6 +7,9 @@
 1.5. 修改为可导入 paratranz 的格式
 1.6. 导出为 json 文件
 """
+import shutil
+from contextlib import suppress
+
 import ujson as json
 import os
 import re
@@ -31,6 +34,13 @@ class Parser:
         self._game_root: Path = game_root       # 需要汉化的游戏内容根目录，默认 DoL | Root path for the game needed to be localized, DoL as default
         self._all_filepaths: list[Path] = []    # 所有文件绝对路径 | Absolute paths for all the files
         logger.debug(f"Game root: {self._game_root}")
+
+    @staticmethod
+    def clean(*filepaths: Path):
+        for fp in filepaths:
+            with suppress(FileNotFoundError):
+                shutil.rmtree(fp)
+            os.makedirs(fp, exist_ok=True)
 
     def get_all_filepaths(self) -> list[Path]:
         raise NotImplementedError
@@ -112,6 +122,7 @@ class TwineParser(Parser):
 
             all_passages.extend(all_passages_part)
 
+        os.makedirs(settings.file.root / settings.file.data, exist_ok=True)
         with open(settings.file.root / settings.file.data / "all_passages.json", "w", encoding="utf-8") as fp:
             json.dump(all_passages, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
@@ -125,9 +136,13 @@ class TwineParser(Parser):
         self.all_passages = all_passages
         self.all_passages_by_passage = all_passages_by_passage
 
+        max_length = max([_['length'] for _ in all_passages])
+        min_length = min([_['length'] for _ in all_passages])
         logger.debug(f"passages: {len(all_passages)}")
-        logger.debug(f"maximum length: {max([_['length'] for _ in all_passages])}")
-        logger.debug(f"minimum length: {min([_['length'] for _ in all_passages])}")
+        logger.debug(f"maximum length: {max_length}")
+        logger.debug(f"maximum length passage: {list(filter(lambda p: p['length'] == max_length, all_passages))[0]['passage_title']}")
+        logger.debug(f"minimum length: {min_length}")
+        logger.debug(f"minimum length passage: {list(filter(lambda p: p['length'] == min_length, all_passages))[0]['passage_title']}")
         return all_passages
 
     def get_all_elements_info(self) -> list[dict[str, str]]:
@@ -205,7 +220,7 @@ class TwineParser(Parser):
                 if elements_copy[idx+i]["pos_start"] < element["pos_end"]:
                     elements[idx+i] = None
 
-        return [_ for _ in elements if _ is not None]
+        return list(filter(lambda _: _ is not None, elements))
 
 
     @staticmethod
