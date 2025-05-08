@@ -28,6 +28,8 @@ class Patterns(Enum):
     MACRO = re.compile(r"""<</?([\w=\-]+)(?:\s+((?:(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|(?://.*\n)|(?:`(?:\\.|[^`\\\n])*?`)|(?:"(?:\\.|[^"\\\n])*?")|(?:'(?:\\.|[^'\\\n])*?')|(?:\[(?:[<>]?[Ii][Mm][Gg])?\[[^\r\n]*?]]+)|[^>]|(?:>(?!>)))*?))?>>""")
     TAG = re.compile(r"""(?<!<)<(?![<!])/?(\w+)\s*[\s\S]*?(?<!>)>(?!>)""")
 
+    """ SPECIAL """
+    MACRO_WIDGET = re.compile(r"""<<widget(?:\s+((?:(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|(?://.*\n)|(?:`(?:\\.|[^`\\\n])*?`)|(?:"(?:\\.|[^"\\\n])*?")|(?:'(?:\\.|[^'\\\n])*?')|(?:\[(?:[<>]?[Ii][Mm][Gg])?\[[^\r\n]*?]]+)|[^>]|(?:>(?!>)))*?))?>>""")
 
 class Parser:
     def __init__(self, game_root: Path = settings.file.root / settings.file.repo / DefaultGames.degrees_of_lewdity.value):
@@ -109,16 +111,20 @@ class TwineParser(Parser):
                 for full in passage_fulls
             ]  # 段落主体
 
-            all_passages_part = [
-                {
+            all_passages_part = []
+            for idx, passage_full in enumerate(passage_fulls):
+                tag = passage_tags[idx].strip("[]") if passage_tags[idx] else None
+                passage_data = {
                     "filepath": filepath_relative.__str__(),
                     "passage_title": passage_titles[idx].strip(),
-                    "passage_tag": passage_tags[idx].strip("[]") if passage_tags[idx] else None,
+                    "passage_tag": tag,
                     "passage_text": passage_texts[idx],
                     "length": len(passage_texts[idx])
                 }
-                for idx, _ in enumerate(passage_fulls)
-            ]
+
+                if tag == "widget":
+                    passage_data["widgets"] = self._split_widgets(passage_texts[idx])
+                all_passages_part.append(passage_data)
 
             all_passages.extend(all_passages_part)
 
@@ -136,13 +142,34 @@ class TwineParser(Parser):
         self.all_passages = all_passages
         self.all_passages_by_passage = all_passages_by_passage
 
-        max_length = max([_['length'] for _ in all_passages])
-        min_length = min([_['length'] for _ in all_passages])
+        max_length_only_passage = max([p['length'] for p in all_passages])
+        min_length_only_passage = min([p['length'] for p in all_passages])
+        max_length_only_passage_title = list(filter(lambda p: p['length'] == max_length_only_passage, all_passages))[0]['passage_title']
+        min_length_only_passage_title = list(filter(lambda p: p['length'] == min_length_only_passage, all_passages))[0]['passage_title']
+
+        pairs = {}
+        for passage in all_passages:
+            if "widgets" not in passage:
+                pairs[passage["passage_title"]] = passage["length"]
+            else:
+                for widget in passage["widgets"]:
+                    pairs[widget["widget_name"]] = widget["length"]
+        max_length_with_widget = max(pairs.values())
+        min_length_with_widget = min(pairs.values())
+        max_length_with_widget_title = {v: k for k, v in pairs.items()}[max_length_with_widget]
+        min_length_with_widget_title = {v: k for k, v in pairs.items()}[min_length_with_widget]
+
         logger.debug(f"passages: {len(all_passages)}")
-        logger.debug(f"maximum length: {max_length}")
-        logger.debug(f"maximum length passage: {list(filter(lambda p: p['length'] == max_length, all_passages))[0]['passage_title']}")
-        logger.debug(f"minimum length: {min_length}")
-        logger.debug(f"minimum length passage: {list(filter(lambda p: p['length'] == min_length, all_passages))[0]['passage_title']}")
+        logger.debug(f"maximum length (only passage): {max_length_only_passage}")
+        logger.debug(f"maximum length passage (only passage): {max_length_only_passage_title}")
+        logger.debug(f"minimum length (only passage): {min_length_only_passage}")
+        logger.debug(f"minimum length passage (only passage): {min_length_only_passage_title}")
+
+        logger.debug(f"maximum length (with widget): {max_length_with_widget}")
+        logger.debug(f"maximum length passage (with widget): {max_length_with_widget_title}")
+        logger.debug(f"minimum length (with widget): {min_length_with_widget}")
+        logger.debug(f"minimum length passage (with widget): {min_length_with_widget_title}")
+
         return all_passages
 
     def get_all_elements_info(self) -> list[dict[str, str]]:
@@ -203,6 +230,25 @@ class TwineParser(Parser):
         logger.debug(f"minimum length: {min([_['length'] for _ in all_elements])}")
         return all_elements
 
+    """ UTILITY FUNCTIONS """
+    @staticmethod
+    def _split_widgets(passage_text: str) -> list:
+        widget_pattern = re.compile(rf"""{Patterns.MACRO_WIDGET.value.pattern}([\s\S]*?)<</widget>>""")
+        result = []
+        for match in re.finditer(widget_pattern, passage_text):
+            widget_name, widget_text = match.groups()
+            widget_name_pure = re.findall(r"\"(\S+)\"", widget_name)
+            widget_name = widget_name_pure[0] if widget_name_pure else widget_name
+
+            result.append({
+                "widget_name": widget_name,
+                "widget_text": widget_text,
+                "widget_pos_start": match.start(),
+                "widget_pos_end": match.end(),
+                "length": len(widget_text),
+            })
+        return result
+
     @staticmethod
     def _sort_elements(elements: list[dict[str, str]]) -> list[dict[str, str]]:
         return sorted(elements, key=lambda elem: elem["pos_start"])
@@ -221,7 +267,6 @@ class TwineParser(Parser):
                     elements[idx+i] = None
 
         return list(filter(lambda _: _ is not None, elements))
-
 
     @staticmethod
     def _fill_plaintexts(elements: list[dict[str, str | int]], filepath: str, content: str, title: str) -> list[dict[str, str]]:
@@ -276,6 +321,7 @@ class TwineParser(Parser):
             })
         return TwineParser._sort_elements(elements)
 
+    """ GETTER & SETTER """
     @property
     def all_passages(self) -> list[dict[str, str]]:
         return self._all_passages
