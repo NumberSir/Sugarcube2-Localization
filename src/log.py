@@ -31,8 +31,8 @@ logger_ = logger_.patch(add_filepath)
 NOW = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
 FORMAT = settings.project.log_format
 logger_.add(sink=sys.stdout, format=FORMAT, colorize=True, level=settings.project.log_level)
-logger_.add(sink=DIR_LOGS / f"{NOW}.log", format=FORMAT, colorize=False, level="INFO", encoding="utf-8")
-logger_.add(sink=DIR_LOGS / f"{NOW}.debug", format=FORMAT, colorize=False, level="DEBUG", encoding="utf-8")
+logger_.add(sink=DIR_LOG / f"{NOW}.log", format=FORMAT, colorize=False, level="INFO", encoding="utf-8")
+logger_.add(sink=DIR_LOG / f"{NOW}.debug", format=FORMAT, colorize=False, level="DEBUG", encoding="utf-8")
 logger = logger_
 
 

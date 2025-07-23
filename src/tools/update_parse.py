@@ -227,7 +227,7 @@ class UpdateParse:
 
 
 if __name__ == '__main__':
-    from src.config import DIR_RESOURCE
+    from src.config import DIR_RESOURCES
     start = time.time()
 
     update = UpdateParse()
@@ -245,5 +245,5 @@ if __name__ == '__main__':
             "\n"
             f"耗时 {end-start:.2f}s"
         ),
-        logo=DIR_RESOURCE / "img" / "dol-chs.ico"
+        logo=DIR_RESOURCES / "img" / "dol-chs.ico"
     ).notify()

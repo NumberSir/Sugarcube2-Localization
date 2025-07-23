@@ -40,7 +40,7 @@ class FilepathSettings(BaseSettings):
     log: Path = Field(default=Path("data/log"))
     paratranz: Path = Field(default=Path("data/paratranz"))
     repo: Path = Field(default=Path("repositories"))  # hard coded
-    resource: Path = Field(default=Path("resource"))
+    resources: Path = Field(default=Path("resources"))
     tmp: Path = Field(default=Path("data/tmp"))
 
 
@@ -76,7 +76,7 @@ settings = Settings()
 DIR_ROOT = settings.filepath.root
 DIR_DATA = DIR_ROOT / settings.filepath.data
 DIR_LOG = DIR_ROOT / settings.filepath.log
-DIR_RESOURCE = DIR_ROOT / settings.filepath.resource
+DIR_RESOURCES = DIR_ROOT / settings.filepath.resources
 DIR_REPOSITORY = DIR_ROOT / settings.filepath.repo
 DIR_TMP = DIR_ROOT / settings.filepath.tmp
 DIR_DOL = DIR_REPOSITORY / DefaultGames.degrees_of_lewdity.value
@@ -90,7 +90,7 @@ __all__ = [
     "DIR_ROOT",
     "DIR_DATA",
     "DIR_LOG",
-    "DIR_RESOURCE",
+    "DIR_RESOURCES",
     "DIR_REPOSITORY",
     "DIR_TMP",
 
