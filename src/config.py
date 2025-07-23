@@ -73,11 +73,29 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+DIR_ROOT = settings.filepath.root
+DIR_DATA = DIR_ROOT / settings.filepath.data
+DIR_LOG = DIR_ROOT / settings.filepath.log
+DIR_RESOURCE = DIR_ROOT / settings.filepath.resource
+DIR_REPOSITORY = DIR_ROOT / settings.filepath.repo
+DIR_TMP = DIR_ROOT / settings.filepath.tmp
+DIR_DOL = DIR_REPOSITORY / DefaultGames.degrees_of_lewdity.value
+DIR_DOLP = DIR_REPOSITORY / DefaultGames.degrees_of_lewdity_plus.value
 
 __all__ = [
     "Settings",
     "settings",
     "DefaultGames",
+
+    "DIR_ROOT",
+    "DIR_DATA",
+    "DIR_LOG",
+    "DIR_RESOURCE",
+    "DIR_REPOSITORY",
+    "DIR_TMP",
+
+    "DIR_DOL",
+    "DIR_DOLP",
 ]
 
 if __name__ == '__main__':

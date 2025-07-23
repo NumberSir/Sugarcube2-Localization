@@ -4,10 +4,10 @@ import sys
 
 from loguru import logger as logger_
 
-from src.config import settings
+from src.config import settings, DIR_LOG
 
-DIR_LOGS = settings.filepath.root / settings.filepath.log
-DIR_LOGS.mkdir(parents=True, exist_ok=True)
+
+DIR_LOG.mkdir(parents=True, exist_ok=True)
 
 
 def add_project_name(record):

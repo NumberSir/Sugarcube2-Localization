@@ -17,7 +17,7 @@ from enum import Enum
 from pathlib import Path
 
 from src import GameRootNotExistException
-from src.config import settings, DefaultGames
+from src.config import DIR_DOL, DIR_DATA
 from src.log import logger
 
 
@@ -32,7 +32,7 @@ class Patterns(Enum):
     MACRO_WIDGET = re.compile(r"""<<widget(?:\s+((?:(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|(?://.*\n)|(?:`(?:\\.|[^`\\\n])*?`)|(?:"(?:\\.|[^"\\\n])*?")|(?:'(?:\\.|[^'\\\n])*?')|(?:\[(?:[<>]?[Ii][Mm][Gg])?\[[^\r\n]*?]]+)|[^>]|(?:>(?!>)))*?))?>>""")
 
 class Parser:
-    def __init__(self, game_root: Path = settings.filepath.root / settings.filepath.repo / DefaultGames.degrees_of_lewdity.value):
+    def __init__(self, game_root: Path = DIR_DOL):
         self._game_root: Path = game_root       # 需要汉化的游戏内容根目录，默认 DoL | Root path for the game needed to be localized, DoL as default
         self._all_filepaths: list[Path] = []    # 所有文件绝对路径 | Absolute paths for all the files
         logger.debug(f"Game root: {self._game_root}")
@@ -128,15 +128,15 @@ class TwineParser(Parser):
 
             all_passages.extend(all_passages_part)
 
-        os.makedirs(settings.filepath.root / settings.filepath.data, exist_ok=True)
-        with open(settings.filepath.root / settings.filepath.data / "all_passages.json", "w", encoding="utf-8") as fp:
+        os.makedirs(DIR_DATA, exist_ok=True)
+        with open(DIR_DATA / "all_passages.json", "w", encoding="utf-8") as fp:
             json.dump(all_passages, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
         all_passages_by_passage = {
             passage_data["passage_title"]: passage_data
             for passage_data in all_passages
         }
-        with open(settings.filepath.root / settings.filepath.data / "all_passages_by_passage.json", "w", encoding="utf-8") as fp:
+        with open(DIR_DATA / "all_passages_by_passage.json", "w", encoding="utf-8") as fp:
             json.dump(all_passages_by_passage, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
         self.all_passages = all_passages
@@ -210,7 +210,7 @@ class TwineParser(Parser):
             all_elements_part = self._fill_plaintexts(all_elements_part, filepath, content, title)
             all_elements.extend(all_elements_part)
 
-        with open(settings.filepath.root / settings.filepath.data / "all_elements.json", "w", encoding="utf-8") as fp:
+        with open(DIR_DATA / "all_elements.json", "w", encoding="utf-8") as fp:
             json.dump(all_elements, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
         all_elements_by_passage = {}
@@ -219,7 +219,7 @@ class TwineParser(Parser):
                 all_elements_by_passage[element["passage_title"]] = [element]
             else:
                 all_elements_by_passage[element["passage_title"]].append(element)
-        with open(settings.filepath.root / settings.filepath.data / "all_elements_by_passage.json", "w", encoding="utf-8") as fp:
+        with open(DIR_DATA / "all_elements_by_passage.json", "w", encoding="utf-8") as fp:
             json.dump(all_elements_by_passage, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
 
         self.all_elements = all_elements
@@ -367,8 +367,8 @@ class JavaScriptParser(Parser):
 
 if __name__ == '__main__':
     parser = TwineParser(
-        # game_root=settings.file.root / settings.file.repo / DefaultGames.degrees_of_lewdity_plus.value
-        game_root=settings.filepath.root / settings.filepath.repo / DefaultGames.degrees_of_lewdity.value
+        # game_root=DIR_DOLP
+        game_root=DIR_DOL
     )
     paths = parser.get_all_filepaths()
     parser.get_all_passages_info()
