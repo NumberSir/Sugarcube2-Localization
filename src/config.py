@@ -12,20 +12,36 @@ class ProjectSettings(BaseSettings):
     """About this project"""
     model_config = SettingsConfigDict(env_prefix="PROJECT_")
 
-    name: str = Field(default="SugarCube2-Localization")
-    log_format: str = Field(default="<g>{time:HH:mm:ss}</g> | [<lvl>{level}</lvl>] | {message}")
+    name: str = Field(default="Sugarcube2-Localization")
+    version: str = Field(default="0.0.1")
+    username: str = Field(default="Anonymous")
+    email: str = Field(default="anonymous@email.com")
+    log_level: str = Field(default="INFO")
+    log_format: str = Field(
+        default="<g>{time:HH:mm:ss}</g> | [<lvl>{level:^7}</lvl>] | {extra[project_name]}{message:<35}"
+    )
+
+    @property
+    def user_agent(self) -> str:
+        return (
+            f"{self.username}/"
+            f"{self.name}/"
+            f"{self.version} "
+            f"({self.email})"
+        )
 
 
-class FileSettings(BaseSettings):
+class FilepathSettings(BaseSettings):
     """About files / directories"""
     model_config = SettingsConfigDict(env_prefix="PATH_")
 
     root: Path = Field(default=Path(__file__).parent.parent)
     data: Path = Field(default=Path("data"))
-    resource: Path = Field(default=Path("resource"))
-    tmp: Path = Field(default=Path("data/tmp"))
+    log: Path = Field(default=Path("data/log"))
     paratranz: Path = Field(default=Path("data/paratranz"))
     repo: Path = Field(default=Path("repositories"))  # hard coded
+    resource: Path = Field(default=Path("resource"))
+    tmp: Path = Field(default=Path("data/tmp"))
 
 
 class DefaultGames(Enum):
@@ -53,7 +69,7 @@ class Settings(BaseSettings):
     paratranz: ParatranzSettings = ParatranzSettings()
     github: GitHubSettings = GitHubSettings()
     project: ProjectSettings = ProjectSettings()
-    file: FileSettings = FileSettings()
+    filepath: FilepathSettings = FilepathSettings()
 
 
 settings = Settings()

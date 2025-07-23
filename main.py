@@ -29,5 +29,5 @@ if __name__ == '__main__':
             "\n"
             f"耗时 {last or -1:.2f}s"
         ),
-        logo=settings.file.resource / "img" / "dol-chs.ico"
+        logo=settings.filepath.resource / "img" / "dol-chs.ico"
     ).notify()

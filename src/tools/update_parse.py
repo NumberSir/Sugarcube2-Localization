@@ -29,13 +29,13 @@ class UpdateParse:
             i18n = json.load(fp)
         self._i18n = i18n
 
-        with open(settings.file.root / settings.file.data / "all_passages.json", "r", encoding="utf-8") as fp:
+        with open(settings.filepath.root / settings.filepath.data / "all_passages.json", "r", encoding="utf-8") as fp:
             all_passages = json.load(fp)
         self._all_passages = all_passages
 
     def get_mappings_before_update(self):
         """获取每一条汉化被哪些基础元素前后包裹的信息"""
-        with open(settings.file.root / settings.file.data / "all_passages_by_passage.json", "r", encoding="utf-8") as fp:
+        with open(settings.filepath.root / settings.filepath.data / "all_passages_by_passage.json", "r", encoding="utf-8") as fp:
             all_passages_by_passage = json.load(fp)
         self._all_passages_by_passage = all_passages_by_passage
 
@@ -53,11 +53,11 @@ class UpdateParse:
             json.dump(i18n_by_passage, fp, ensure_ascii=False, indent=2, escape_forward_slashes=False)
         self._i18n_by_passage = i18n_by_passage
 
-        with open(settings.file.root / settings.file.data / "all_elements.json", "r", encoding="utf-8") as fp:
+        with open(settings.filepath.root / settings.filepath.data / "all_elements.json", "r", encoding="utf-8") as fp:
             all_elements = json.load(fp)
         self._all_elements = all_elements
 
-        with open(settings.file.root / settings.file.data / "all_elements_by_passage.json", "r", encoding="utf-8") as fp:
+        with open(settings.filepath.root / settings.filepath.data / "all_elements_by_passage.json", "r", encoding="utf-8") as fp:
             all_elements_by_passage = json.load(fp)
         self._all_elements_by_passage = all_elements_by_passage
 
@@ -244,5 +244,5 @@ if __name__ == '__main__':
             "\n"
             f"耗时 {end-start:.2f}s"
         ),
-        logo=settings.file.root / settings.file.resource / "img" / "dol-chs.ico"
+        logo=settings.filepath.root / settings.filepath.resource / "img" / "dol-chs.ico"
     ).notify()
