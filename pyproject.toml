@@ -1,0 +1,79 @@
+[project]
+name = "sugarcube2-localization"
+version = "0.0.1-a"
+description = "Pick up texts from games based on sugarcube2 engine."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+maintainers = [{ name = "Number_Sir", email = "number_sir@126.com" }]
+keywords = [
+    "localization",
+    "twine",
+    "sugarcube"
+]
+dependencies = [
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "python-dotenv>=1.1.1",
+    "ujson>=5.10.0",
+    "windows-toasts>=1.3.1",
+]
+
+[project.urls]
+repository = "https://github.com/NumberSir/sugarcube2-localization"
+documentation = "https://github.com/NumberSir/sugarcube2-localization/README.md"
+issues = "https://github.com/NumberSir/sugarcube2-localization/issues"
+
+[tool.uv]
+package = false
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    ".env",
+    ".venv",
+    ".idea",
+    ".vscode",
+    "repositories"
+]
+
+[tool.hatch.build.targets.wheel]
+exclude = [
+    ".env",
+    ".venv",
+    ".idea",
+    ".vscode",
+    "repositories"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+cache-dir = "data/cache/ruff"
+exclude = [".venv", ".idea", "repositories", "data", "dist", "resource"]
+include = ["*.py"]
+line-length = 121  # pycharm default
+namespace-packages = [
+    "src/core",
+    "src/core/parser",
+    "src/tools",
+    "src/tools/paratranz"
+]
+respect-gitignore = true
+show-fixes = true
+src = ["src"]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 121
+quote-style = "single"
+
+[tool.ruff.lint]
+extend-select = ["E501"]
+logger-objects = ["src.log.logger"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403"]
