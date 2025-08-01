@@ -1,63 +1,14 @@
-"""
-1. Twine
-1.1. 获取文件绝对路径 (按文件进行一级分割)
-1.2. 获取段落信息 (按段落进行二级分割)
-1.3. 获取基础元素信息 (comment, head, macro, tag, script, 剩下的就是 plain text)
-1.4. ？将元素组合？
-1.5. 修改为可导入 paratranz 的格式
-1.6. 导出为 json 文件
-"""
-import shutil
-from contextlib import suppress
-
-import ujson as json
 import os
 import re
-from enum import Enum
+import ujson as json
+
 from pathlib import Path
 
-from src import GameRootNotExistException
-from src.config import DIR_DOL, DIR_DATA
+from src.core.parser.internal import Parser
+from src.core.schema.enum import Patterns
+from src.config import DIR_DATA
+from src.exceptions import GameRootNotExistException
 from src.log import logger
-
-
-class Patterns(Enum):
-    """Regexes"""
-    PASSAGE_HEAD = re.compile(r""":: ?([\-\w.\'\"/& ]+) ?(\[[\S ]+])?\n""")
-    COMMENT = re.compile(r"""(?:/\*|<!--)[\s\S]+?(?:\*/|-->)""")
-    MACRO = re.compile(r"""<</?([\w=\-]+)(?:\s+((?:(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|(?://.*\n)|(?:`(?:\\.|[^`\\\n])*?`)|(?:"(?:\\.|[^"\\\n])*?")|(?:'(?:\\.|[^'\\\n])*?')|(?:\[(?:[<>]?[Ii][Mm][Gg])?\[[^\r\n]*?]]+)|[^>]|(?:>(?!>)))*?))?>>""")
-    TAG = re.compile(r"""(?<!<)<(?![<!])/?(\w+)\s*[\s\S]*?(?<!>)>(?!>)""")
-
-    """ SPECIAL """
-    MACRO_WIDGET = re.compile(r"""<<widget(?:\s+((?:(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|(?://.*\n)|(?:`(?:\\.|[^`\\\n])*?`)|(?:"(?:\\.|[^"\\\n])*?")|(?:'(?:\\.|[^'\\\n])*?')|(?:\[(?:[<>]?[Ii][Mm][Gg])?\[[^\r\n]*?]]+)|[^>]|(?:>(?!>)))*?))?>>""")
-
-class Parser:
-    def __init__(self, game_root: Path = DIR_DOL):
-        self._game_root: Path = game_root       # 需要汉化的游戏内容根目录，默认 DoL | Root path for the game needed to be localized, DoL as default
-        self._all_filepaths: list[Path] = []    # 所有文件绝对路径 | Absolute paths for all the files
-        logger.debug(f"Game root: {self._game_root}")
-
-    @staticmethod
-    def clean(*filepaths: Path):
-        for fp in filepaths:
-            with suppress(FileNotFoundError):
-                shutil.rmtree(fp)
-            os.makedirs(fp, exist_ok=True)
-
-    def get_all_filepaths(self) -> list[Path]:
-        raise NotImplementedError
-
-    @property
-    def game_root(self) -> Path:
-        return self._game_root
-
-    @property
-    def all_filepaths(self) -> list[Path]:
-        return self._all_filepaths
-
-    @all_filepaths.setter
-    def all_filepaths(self, fps: list[Path]) -> None:
-        self._all_filepaths = fps
 
 
 class TwineParser(Parser):
@@ -355,21 +306,6 @@ class TwineParser(Parser):
         self._all_elements = elements
 
 
-class JavaScriptParser(Parser):
-    def get_all_filepaths(self) -> list[Path]:
-        return [
-            Path(root) / file
-            for root, dirs, files in os.walk(self.game_root)
-            for file in files
-            if file.endswith(".js")
-        ]
-
-
-if __name__ == '__main__':
-    parser = TwineParser(
-        # game_root=DIR_DOLP
-        game_root=DIR_DOL
-    )
-    paths = parser.get_all_filepaths()
-    parser.get_all_passages_info()
-    parser.get_all_elements_info()
+__all__ = [
+    "TwineParser"
+]

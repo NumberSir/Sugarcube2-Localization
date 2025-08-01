@@ -1,6 +1,7 @@
 """Notify you after the script running done."""
 
 import platform
+
 from pathlib import Path
 
 from windows_toasts import WindowsToaster, Toast, ToastDisplayImage, ToastImagePosition
