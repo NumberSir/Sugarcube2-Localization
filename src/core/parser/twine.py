@@ -24,7 +24,7 @@ import re
 import ujson as json
 
 from pathlib import Path
-from typing import Iterator, SupportsIndex
+from typing import Iterator
 
 from src.config import DIR_DATA
 from src.exceptions import GameRootNotExistException
@@ -38,14 +38,14 @@ class TwineParser(Parser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        """All passages' info: title, tag, body, position, length and widgets contained"""
+        """All passages' info: title, tag, body, position, length and widgets contained."""
         self._all_passages: list[PassageModel] | None = None
         """Same as above, indexed by passage title."""
         self._all_passages_by_passage: dict[str, PassageModel] | None = None
 
-        """"""
+        """All elements' info: type, body, position and length."""
         self._all_elements: list[ElementModel] | None = None
-        """"""
+        """Same as above, indexed by passage title."""
         self._all_elements_by_passage: dict[str, list[ElementModel]] | None = None
 
     def get_all_filepaths(self) -> Iterator[Path]:
@@ -347,10 +347,3 @@ class TwineParser(Parser):
 __all__ = [
     "TwineParser"
 ]
-
-
-if __name__ == '__main__':
-    parser = TwineParser()
-    paths = parser.get_all_filepaths()
-    passages = parser.get_all_passages_info()
-    elements = parser.get_all_elements_info()
