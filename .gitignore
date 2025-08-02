@@ -1,0 +1,8 @@
+# Environment
+/.idea/
+/.vscode/
+/.venv/
+.env
+
+# Special
+/src/core/reviewer/js_modules/
