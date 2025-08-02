@@ -21,9 +21,7 @@ from src.log import logger
 
 class Parser:
     def __init__(self, game_root: Path = DIR_DOL):
-        self._game_root: Path = game_root       # 需要汉化的游戏内容根目录，默认 DoL | Root path for the game needed to be localized, DoL as default
-        self._all_filepaths: Iterator[Path] | None = None    # 所有文件绝对路径 | Absolute paths for all the files
-        logger.debug(f"Game root: {self._game_root}")
+        self._game_root: Path = game_root       # Root path for the game needed to be localized, DoL as default
 
     @staticmethod
     def clean(*filepaths: Path):
@@ -38,14 +36,6 @@ class Parser:
     @property
     def game_root(self) -> Path:
         return self._game_root
-
-    @property
-    def all_filepaths(self) -> Iterator[Path]:
-        return self._all_filepaths
-
-    @all_filepaths.setter
-    def all_filepaths(self, fps: Iterator[Path]) -> None:
-        self._all_filepaths = fps
 
 
 __all__ = [

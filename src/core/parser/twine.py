@@ -29,6 +29,7 @@ from typing import Iterator
 from src.config import DIR_DATA
 from src.exceptions import GameRootNotExistException
 from src.log import logger
+from src.core.utils import get_all_filepaths
 from src.core.parser.internal import Parser
 from src.core.schema.enum import Patterns
 from src.core.schema.model import WidgetModel, PassageModel, ElementModel
@@ -52,9 +53,7 @@ class TwineParser(Parser):
         """Get all twinescript absolute filepaths."""
         if not self.game_root.exists():
             raise GameRootNotExistException
-
-        self.all_filepaths = self.game_root.glob("**/*.twee")
-        return self.all_filepaths
+        return get_all_filepaths(".twee", self.game_root)
 
     def get_all_passages_info(self) -> list[PassageModel]:
         """Get all passages' info from twinescript files."""
