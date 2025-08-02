@@ -19,5 +19,5 @@ class GameRootNotExistException(_BaseException):
 
 
 __all__ = [
-    "GameRootNotExistException"
+    "GameRootNotExistException",
 ]
