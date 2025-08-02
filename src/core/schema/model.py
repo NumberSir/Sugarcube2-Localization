@@ -80,6 +80,7 @@ class AcornParserOptions(_BaseModelExtraAllowed):
 
 
 class JSSyntaxErrorModel(_BaseModelExtraAllowed):
+    """Javascript syntax errors from Acorn"""
     class LocationModel(_BaseModelExtraAllowed):
         line: int = Field(...)
         column: int = Field(...)

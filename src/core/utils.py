@@ -10,6 +10,7 @@ def get_all_filepaths(suffix: str, directory: Path) -> Iterator[Path]:
 
 
 def traceback_detail(js_code: str, error: JSSyntaxErrorModel) -> tuple[str, str]:
+    """Javascript traceback details."""
     return (
         f"{js_code.splitlines()[error.loc.line-1]}".rstrip('\n'),
         f"{'^': >{error.loc.column+1}}"
