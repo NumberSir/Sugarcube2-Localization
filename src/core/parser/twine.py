@@ -58,7 +58,7 @@ class TwineParser(Parser):
     def get_all_passages_info(self) -> list[PassageModel]:
         """Get all passages' info from twinescript files."""
         all_passages: list[PassageModel] = []
-        for filepath in self.all_filepaths:
+        for filepath in self.get_all_filepaths():
             with open(filepath, "r", encoding="utf-8") as fp:
                 content = fp.read()
 
@@ -346,3 +346,9 @@ class TwineParser(Parser):
 __all__ = [
     "TwineParser"
 ]
+
+
+if __name__ == '__main__':
+    parser = TwineParser()
+    parser.get_all_passages_info()
+    parser.get_all_elements_info()
