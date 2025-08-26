@@ -1,5 +1,3 @@
-import json
-
 import dukpy
 
 from pathlib import Path
@@ -43,6 +41,7 @@ class JavascriptReviewer(Reviewer):
             with filepath.open("r", encoding="utf-8") as fp:
                 js_code = fp.read()
 
+            # language=JavaScript
             validation = \
             """
             var acorn = require('acorn');
