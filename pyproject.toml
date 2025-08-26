@@ -17,6 +17,7 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
+    "pyside6>=6.9.1",
     "python-dotenv>=1.1.1",
     "ujson>=5.10.0",
     "windows-toasts>=1.3.1",
