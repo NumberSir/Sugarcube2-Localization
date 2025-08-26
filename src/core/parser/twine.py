@@ -20,6 +20,7 @@ Twinescript File
 
 import os
 import re
+from typing_extensions import deprecated
 
 import ujson as json
 
@@ -31,13 +32,18 @@ from src.exceptions import GameRootNotExistException
 from src.log import logger
 from src.core.utils import get_all_filepaths
 from src.core.parser.internal import Parser
-from src.core.schema.enum import Patterns
-from src.core.schema.model import WidgetModel, PassageModel, ElementModel
+from src.core.schema.enum import Patterns, Mappings
+from src.core.schema.model import (
+    WidgetModel, PassageModel, ElementModel,
+    ElementCommentModel, ElementMacroModel, ElementTagModel, ElementTextModel, ElementVariableModel
+)
 
 
 class TwineParser(Parser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        """All filepaths with suffix '.twee'"""
+        self._all_filepaths: list[Path] = None
 
         """All passages' info: title, tag, body, position, length and widgets contained."""
         self._all_passages: list[PassageModel] | None = None
@@ -53,12 +59,14 @@ class TwineParser(Parser):
         """Get all twinescript absolute filepaths."""
         if not self.game_root.exists():
             raise GameRootNotExistException
-        return get_all_filepaths(".twee", self.game_root)
+        self.all_filepaths = get_all_filepaths(".twee", self.game_root)
+        return self.all_filepaths
 
-    def get_all_passages_info(self) -> list[PassageModel]:
+    def get_all_passages_info(self) -> tuple[list[PassageModel], dict[str, PassageModel]]:
         """Get all passages' info from twinescript files."""
         all_passages: list[PassageModel] = []
-        for filepath in self.get_all_filepaths():
+        all_filepaths = self.all_filepaths or self.get_all_filepaths()
+        for filepath in all_filepaths:
             with open(filepath, "r", encoding="utf-8") as fp:
                 content = fp.read()
 
@@ -73,11 +81,14 @@ class TwineParser(Parser):
             # 以每个段落标题前一位置的换行作为分割符
             split_pattern = re.compile(rf"\n(?={Patterns.PASSAGE_HEAD.value.pattern})")
 
-            # 格式：[空字符串, (段落名, 方括号标签, 段落全文), (...), ...]
+            # 格式：[空字符串, (段落名, 方括号标签, 花括号数据, 段落全文), (...), ...]
+
             passages = re.split(split_pattern, content)[1:]
-            passage_titles = passages[::3]  # 段落名
-            passage_tags = passages[1::3]   # 方括号标签
-            passage_fulls = passages[2::3]  # 段落全文
+            passage_titles = passages[::5]  # 段落名
+            passage_tags = passages[1::5]   # 方括号标签
+            passage_tags = [_.strip().strip("[").strip("]") if _ is not None else _ for _ in passage_tags]
+            passage_datas = passages[3::5]  # 花括号数据
+            passage_fulls = passages[4::5]  # 段落全文
             passage_bodys = [
                 re.sub(re.compile(rf"^{Patterns.PASSAGE_HEAD.value.pattern}"), "", full)
                 for full in passage_fulls
@@ -116,6 +127,7 @@ class TwineParser(Parser):
 
         self.all_passages = all_passages
         self.all_passages_by_passage = all_passages_by_passage
+        logger.success(f"{len(self.all_passages)} passages found.")
 
         """ Debug texts, no actual use."""
         max_length_only_passage = max([p.length for p in all_passages])
@@ -146,12 +158,14 @@ class TwineParser(Parser):
         logger.debug(f"minimum length (with widget): {min_length_with_widget}")
         logger.debug(f"minimum length passage (with widget): {min_length_with_widget_title}")
 
-        return all_passages
+        return all_passages, all_passages_by_passage
 
-    def get_all_elements_info(self) -> list[ElementModel]:
+    def get_all_elements_info(self) -> tuple[list[ElementModel], dict[str, list[ElementModel]]]:
         """Split each passage into basic elements."""
         all_elements: list[ElementModel] = []
-        for passage in self.all_passages:
+        all_passages = self.all_passages or self.get_all_passages_info()[0]
+
+        for passage in all_passages:
             filepath = passage.filepath
             title = passage.title
             body = passage.body
@@ -176,7 +190,7 @@ class TwineParser(Parser):
                 all_elements_part.append(ElementModel(
                     filepath=filepath,
                     title=title,
-                    type="TEXT",
+                    type=Patterns.TEXT.name,
                     body=body,
                     pos_start=0,
                     pos_end=len(body),
@@ -186,6 +200,7 @@ class TwineParser(Parser):
             all_elements_part = self._sort_elements(all_elements_part)
             all_elements_part = self._filter_elements_inside_another(all_elements_part)
             all_elements_part = self._fill_plaintexts(all_elements_part, filepath, body, title)
+            all_elements_part = self._merge_elements_inside_script(all_elements_part)
             all_elements.extend(all_elements_part)
 
         with open(DIR_DATA / "all_elements.json", "w", encoding="utf-8") as fp:
@@ -208,17 +223,190 @@ class TwineParser(Parser):
 
         self.all_elements = all_elements
         self.all_elements_by_passage = all_elements_by_passage
+        logger.success(f"{len(self.all_elements)} elements found.")
 
         """Debug texts, no actual use."""
         logger.debug(f"elements: {len(all_elements)}")
         logger.debug(f"maximum length: {max([_.length for _ in all_elements])}")
         logger.debug(f"minimum length: {min([_.length for _ in all_elements])}")
-        return all_elements
+        return all_elements, all_elements_by_passage
+
+    def get_all_elements_info_detailed(self) -> list[ElementModel]:
+        all_elements_by_passage = self.all_elements_by_passage or self.get_all_elements_info()[1]
+        all_elements_by_passage_detailed = all_elements_by_passage.copy()
+
+        for passage, elements in all_elements_by_passage.items():
+            element_level = 0
+            for idx, element in enumerate(elements):
+                match element.type:
+                    case Patterns.COMMENT.name:
+                        """ /* content */ """
+                        content = re.match(Patterns.COMMENT.value, element.body).groups()[0]
+                        element.data = ElementCommentModel(content=content)
+                    case Patterns.MACRO.name:
+                        """ <<name args>> """
+                        # TODO
+                        name, args = re.match(Patterns.MACRO.value, element.body).groups()
+                        args_desugared = self.desugar(args) if args else None
+                        element.body_desugared = f"<<{name} {args_desugared}>>" if args else element.body
+                        if is_close := name.startswith("/"):
+                            name = name.lstrip("/")
+                        element.data = ElementMacroModel(name=name, args=args, is_close=is_close)
+                    case Patterns.TAG.name:
+                        """<name args>"""
+                        # TODO
+                        name, args = re.match(Patterns.MACRO.value, element.body).groups()
+                        if is_close := name.startswith("/"):
+                            name = name.lstrip("/")
+                        element.data = ElementTagModel(name=name, args=args, is_close=is_close)
+                    case Patterns.TEXT.name:
+                        # TODO
+                        if element.body.startswith("$") or element.body.startswith("_"):
+                            display_name = element.body
+                            element.data = ElementVariableModel(display_name=display_name)
+                        else:
+                            element.data = ElementVariableModel()
+                    case _:
+                        raise TypeError(f"Unknown element type: {element.type}")
+
+                element.level = element_level
+                all_elements_by_passage_detailed[passage][idx] = element
+
+        all_elements_detailed = []
+        for passage, elements in all_elements_by_passage_detailed.items():
+            all_elements_detailed.extend(elements)
+
+        with open(DIR_DATA / "all_elements_detailed.json", "w", encoding="utf-8") as fp:
+            json.dump(
+                [_.model_dump(mode="json") for _ in all_elements_detailed],
+                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
+            )
+
+        with open(DIR_DATA / "all_elements_by_passage_detailed.json", "w", encoding="utf-8") as fp:
+            json.dump(
+                {k: [v.model_dump(mode="json") for v in vs] for k, vs in all_elements_by_passage_detailed.items()},
+                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
+            )
+
+    """ Restore TwineScript to JavaScript """
+    # TODO: Optimization
+    def restore_javascript(self):
+        all_passages = self.all_passages or self.get_all_passages_info()[0]
+        for idx, passage in enumerate(all_passages):
+            logger.info(f"Restoring passage {idx}/{len(all_passages)}: {passage.title}")
+            all_passages[idx].body = self.desugar(passage.body)
+
+        with open(DIR_DATA / "all_passages_desugared.json", "w", encoding="utf-8") as fp:
+            json.dump(
+                [_.model_dump(mode="json") for _ in all_passages],
+                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
+            )
+
+        all_passages_by_passage = {
+            passage_model.title: passage_model
+            for passage_model in all_passages
+        }
+        with open(DIR_DATA / "all_passages_by_passage_desugared.json", "w", encoding="utf-8") as fp:
+            json.dump(
+                {k: v.model_dump(mode="json") for k, v in all_passages_by_passage.items()},
+                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
+            )
+
+    def desugar(self, twinescript_code: str) -> str:
+        """
+        1. 变量: $ -> State.variables., ...
+        2. 表达式: to -> ==, gte -> >=, ...
+        """
+        code = twinescript_code
+        matches = list(re.finditer(Patterns.DESUGAR.value, code))
+
+        """替换字符串后顺序坐标会改变，因此倒序替换"""
+        """no-op: Empty quotes, Double quoted, Single quoted, Operator characters, Spread/rest syntax"""
+        for idx, match in enumerate(matches[::-1]):
+            # Template literal, non-empty.
+            if sugared_template := match[1]:
+                template = self.desugar_template(sugared_template)
+                if template != sugared_template:
+                    code = (
+                        f"{code[:match.start()]}"
+                        f"{template}"
+                        f"{code[match.start()+len(sugared_template):]}"
+                    )
+
+            # Barewords.
+            elif token := match[2]:
+                # logger.info(f"match token: {idx}/{len(matches)} - {token}")
+                """
+                If the token is simply a dollar-sign or underscore, then it's either
+                just the raw character or, probably, a function alias, so skip it.
+                """
+                if token in {'$', '_'}:
+                    continue
+
+                """
+                If the token is a story $variable or temporary _variable, then reset
+                it to just its sigil for replacement.
+                """
+                if re.match(Patterns.VARIABLE.value, token):
+                    token = token[0]
+
+                """    
+                If the finalized token has a mapping, replace it within the code string
+                with its counterpart.
+                """
+                if replacement := Mappings.TOKEN.value.get(token):
+                    code = (
+                        f"{code[:match.start()]}"
+                        f"{replacement}"
+                        f"{code[match.start()+len(token):]}"
+                    )
+
+        return code
+
+    def desugar_template(self, twinescript_template: str) -> str:
+        """ `...${content}...${...${nested_content}...}...` """
+        template = twinescript_template
+
+        start_match_search_pos = 0
+        while start_match := Patterns.TEMPLATE_GROUP_START.value.search(template, pos=start_match_search_pos):
+            depth = 1
+
+            start_index = start_match.start() + 2
+            end_index = start_index
+            end_match_search_pos = start_index
+            while end_match := Patterns.TEMPLATE_GROUP_PARSE.value.search(template, pos=end_match_search_pos):
+                # logger.info("loop 2")
+                if end_match[1]:  # open
+                    depth += 1
+                    logger.info(f"{depth=}, {end_match=}")
+                elif end_match[2]:  # close
+                    depth -= 1
+                    logger.info(f"{depth=}, {end_match=}")
+
+                if depth == 0:
+                    end_index = end_match.start()
+                    break
+                end_match_search_pos = end_match.start() + 1
+
+            start_match_search_pos = start_index
+            if end_index > start_index:
+                old = template[start_index:end_index]
+                new = self.desugar(old)
+
+                template = (
+                    f"{template[:start_index]}"
+                    f"{new}"
+                    f"{template[start_index+len(old):]}"
+                )
+                start_match_search_pos += len(new) - len(old)
+                continue
+
+        return template
 
     """ Utility Methods """
     @staticmethod
     def _split_widgets(passage_body: str) -> list[WidgetModel]:
-        """Split each widget into parts."""
+        """Split each widget in single widget-passage into parts."""
         widget_pattern = re.compile(rf"""{Patterns.MACRO_WIDGET.value.pattern}([\s\S]*?)<</widget>>""")
         result = []
         for match in re.finditer(widget_pattern, passage_body):
@@ -309,7 +497,58 @@ class TwineParser(Parser):
         """Sort again, including plain-text elements"""
         return TwineParser._sort_elements(elements)
 
+    @staticmethod
+    def _merge_elements_inside_script(elements: list[ElementModel]) -> list[ElementModel]:
+        """
+        <<script>>...<</script>>
+        之中的内容统一判断为 JAVASCRIPT
+        """
+        result: list[ElementModel] = []
+        filepath = elements[0].filepath
+        title = elements[0].title
+        type_ = Patterns.JAVASCRIPT.name
+        pos_start = -1
+        body = ""
+
+        inside = False
+        for idx, element in enumerate(elements):
+            if not inside:  # <<script>> ，及其它元素
+                result.append(element)
+            elif element.body == "<</script>>":
+                inside = False
+                result.append(ElementModel(
+                    filepath=filepath,
+                    title=title,
+                    type=type_,
+                    pos_start=pos_start,
+                    pos_end=element.pos_start,
+                    length=element.pos_start-pos_start,
+                    body=body,
+                ))
+                logger.info(f"inside, {body=}")
+                result.append(element)
+                continue
+            else:  # 二者之间的元素，以及 <</script>>
+                body = f"{body}{element.body}"
+                continue
+
+            if element.body == "<<script>>":
+                inside = True
+                pos_start = element.pos_end
+                body = ""
+                continue
+
+        return result
+
     """ Getters & Setters """
+    @property
+    def all_filepaths(self) -> list[Path]:
+        return self._all_filepaths
+
+    @all_filepaths.setter
+    def all_filepaths(self, filepaths: list[Path]) -> None:
+        self._all_filepaths = filepaths
+
     @property
     def all_passages(self) -> list[PassageModel]:
         return self._all_passages
@@ -350,5 +589,4 @@ __all__ = [
 
 if __name__ == '__main__':
     parser = TwineParser()
-    parser.get_all_passages_info()
     parser.get_all_elements_info()

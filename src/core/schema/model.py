@@ -37,15 +37,46 @@ class PassageModel(_BaseModelExtraAllowed):
     widgets: list[WidgetModel] | None = Field(default_factory=list)
 
 
+class ElementCommentModel(_BaseModelExtraAllowed):
+    content: str = Field(default="MISSING_CONTENT")
+
+
+class ElementMacroModel(_BaseModelExtraAllowed):
+    """<<name args>>"""
+    name: str = Field(default="MISSING_NAME")
+    args: str = Field(default="MISSING_ARGS")
+    is_close: bool = Field(default=False)
+
+
+class ElementTagModel(_BaseModelExtraAllowed):
+    """<name args>"""
+    name: str = Field(default="MISSING_NAME")
+    args: str = Field(default="MISSING_ARGS")
+    is_close: bool = Field(default=False)
+
+
+class ElementVariableModel(_BaseModelExtraAllowed):
+    """naked variable, starts with $ or _ """
+    display_name: str = Field(default="MISSING_DISPLAY_NAME")
+    type: str = Field(default="MISSING_TYPE")
+
+
+class ElementTextModel(_BaseModelExtraAllowed):
+    """Pure texts / Plain texts"""
+
+
 class ElementModel(_BaseModelExtraAllowed):
     """Basic element constitutes each passage."""
     filepath: Path = Field(...)
     title: str = Field(default="MISSING_TITLE")
     type: str = Field(default="MISSING_TYPE")
     body: str = Field(default="MISSING_BODY")
+    body_desugared: str = Field(default="MISSING_DESUGARED")
     pos_start: int = Field(default=-1)
     pos_end: int = Field(default=-1)
     length: int = Field(default=-1)
+    level: int = Field(default=0)
+    data: ElementCommentModel | ElementMacroModel | None = Field(default=None)
 
 
 """ Reviewer """
@@ -95,6 +126,9 @@ __all__ = [
     "WidgetModel",
     "PassageModel",
     "ElementModel",
+    "ElementCommentModel",
+    "ElementMacroModel",
+    "ElementTagModel",
 
     "AcornParserOptions",
     "JSSyntaxErrorModel",
