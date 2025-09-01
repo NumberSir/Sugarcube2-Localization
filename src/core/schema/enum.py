@@ -91,7 +91,39 @@ class Mappings(Enum):
     }
 
 
+class LexerItem(Enum):
+    """
+    Lex item types object.
+
+    https://github.com/tmedwards/sugarcube-2/blob/develop/src/markup/wikifier-util.js
+    """
+    Error = auto()      # error
+    DelimLTR = auto()   # '|' or '->'
+    DelimRTL = auto()   # '<-'
+    InnerMeta = auto()  # ']['
+    ImageMeta = auto()  # '[img[', '[<img[', or '[>img['
+    LinkMeta = auto()   # '[['
+    Link = auto()       # link destination
+    RightMeta = auto()  # ']]'
+    Setter = auto()     # setter expression
+    Source = auto()     # image source
+    Text = auto()       # link text or image alt text
+
+
+class Delimiter(Enum):
+    """
+    Delimiter state object.
+
+    https://github.com/tmedwards/sugarcube-2/blob/develop/src/markup/wikifier-util.js
+    """
+    None_ = auto()  # no delimiter encountered
+    LTR = auto()   # '|' or '->'
+    RTL = auto()   # '<-'
+
+
 __all__ = [
     "Patterns",
-    "Mappings"
+    "Mappings",
+    "LexerItem",
+    "Delimiter",
 ]
