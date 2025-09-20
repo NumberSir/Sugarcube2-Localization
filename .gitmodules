@@ -7,3 +7,6 @@
 [submodule "sugarcube-2"]
 	path = repositories/sugarcube-2
 	url = https://github.com/tmedwards/sugarcube-2.git
+[submodule "repositories/sugarcube-2-vrelnir"]
+	path = repositories/sugarcube-2-vrelnir
+	url = https://gitgud.io/Vrelnir/sugarcube-2
