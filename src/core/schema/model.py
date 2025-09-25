@@ -37,46 +37,49 @@ class PassageModel(_BaseModelExtraAllowed):
     widgets: list[WidgetModel] | None = Field(default_factory=list)
 
 
-class ElementCommentModel(_BaseModelExtraAllowed):
-    content: str = Field(default="MISSING_CONTENT")
+# class ElementCommentModel(_BaseModelExtraAllowed):
+#     content: str = Field(default="MISSING_CONTENT")
 
 
-class ElementMacroModel(_BaseModelExtraAllowed):
-    """<<name args>>"""
-    name: str = Field(default="MISSING_NAME")
-    args: str = Field(default="MISSING_ARGS")
-    is_close: bool = Field(default=False)
+# class ElementMacroModel(_BaseModelExtraAllowed):
+#     """<<name args>>"""
+#     name: str = Field(default="MISSING_NAME")
+#     args: str = Field(default="MISSING_ARGS")
+#     is_close: bool = Field(default=False)
 
 
-class ElementTagModel(_BaseModelExtraAllowed):
-    """<name args>"""
-    name: str = Field(default="MISSING_NAME")
-    args: str = Field(default="MISSING_ARGS")
-    is_close: bool = Field(default=False)
+# class ElementTagModel(_BaseModelExtraAllowed):
+#     """<name args>"""
+#     name: str = Field(default="MISSING_NAME")
+#     args: str = Field(default="MISSING_ARGS")
+#     is_close: bool = Field(default=False)
 
 
-class ElementVariableModel(_BaseModelExtraAllowed):
-    """naked variable, starts with $ or _ """
-    display_name: str = Field(default="MISSING_DISPLAY_NAME")
-    type: str = Field(default="MISSING_TYPE")
+# class ElementVariableModel(_BaseModelExtraAllowed):
+#     """naked variable, starts with $ or _ """
+#     display_name: str = Field(default="MISSING_DISPLAY_NAME")
+#     type: str = Field(default="MISSING_TYPE")
 
 
-class ElementTextModel(_BaseModelExtraAllowed):
-    """Pure texts / Plain texts"""
+# class ElementTextModel(_BaseModelExtraAllowed):
+#     """Pure texts / Plain texts"""
 
 
 class ElementModel(_BaseModelExtraAllowed):
     """Basic element constitutes each passage."""
-    filepath: Path = Field(...)
-    title: str = Field(default="MISSING_TITLE")
+    filepath: Path = Field(default="MISSING_FILEPATH")
+    passage: str = Field(default="MISSING_PASSAGE")
+    widget: str | None = Field(default=None)
+    block: str | None = Field(default=None, description="该元素是否为块的首尾，否则为填充文本")
+    block_name: str | None = Field(default=None, description="仅当为块首尾时，存放其名称")
     type: str = Field(default="MISSING_TYPE")
     body: str = Field(default="MISSING_BODY")
-    body_desugared: str = Field(default="MISSING_DESUGARED")
+    # body_desugared: str = Field(default="MISSING_DESUGARED")
     pos_start: int = Field(default=-1)
     pos_end: int = Field(default=-1)
     length: int = Field(default=-1)
-    level: int = Field(default=0)
-    data: ElementCommentModel | ElementMacroModel | None = Field(default=None)
+    level: int = Field(default=-1)
+    # data: ElementCommentModel | ElementMacroModel | None = Field(default=None)
 
 
 """ Reviewer """
@@ -121,14 +124,24 @@ class JSSyntaxErrorModel(_BaseModelExtraAllowed):
     loc: LocationModel = Field(...)
     raisedAt: int = Field(...)
 
+""" From sugarcube-2 """
+
+# class LexerItemModel(_BaseModelExtraAllowed):
+#     type_: Enum | None = Field(default=None, alias="type")
+#     message: str | None = Field(default=None)
+#     text: str = Field(..., )
+#     start: int = Field(..., )
+#     pos: int = Field(..., )
+
+
+# class LexerDataModel(_BaseModelExtraAllowed):
+#     is_link: bool | None = Field(default=None)
+
 
 __all__ = [
     "WidgetModel",
     "PassageModel",
     "ElementModel",
-    "ElementCommentModel",
-    "ElementMacroModel",
-    "ElementTagModel",
 
     "AcornParserOptions",
     "JSSyntaxErrorModel",
