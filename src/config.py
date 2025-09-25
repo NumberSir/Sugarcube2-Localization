@@ -38,6 +38,7 @@ class FilepathSettings(BaseSettings):
     root: Path = Field(default=Path(__file__).parent.parent)
     data: Path = Field(default=Path("data"))
     log: Path = Field(default=Path("data/log"))
+    database: Path = Field(default=Path("data/database"))
     paratranz: Path = Field(default=Path("data/paratranz"))
     repo: Path = Field(default=Path("repositories"))  # hard coded
     resources: Path = Field(default=Path("resources"))
@@ -76,6 +77,7 @@ settings = Settings()
 DIR_ROOT = settings.filepath.root
 DIR_DATA = DIR_ROOT / settings.filepath.data
 DIR_LOG = DIR_ROOT / settings.filepath.log
+DIR_DATABASE = DIR_ROOT / settings.filepath.database
 DIR_RESOURCES = DIR_ROOT / settings.filepath.resources
 DIR_REPOSITORY = DIR_ROOT / settings.filepath.repo
 DIR_TMP = DIR_ROOT / settings.filepath.tmp
@@ -90,6 +92,7 @@ __all__ = [
     "DIR_ROOT",
     "DIR_DATA",
     "DIR_LOG",
+    "DIR_DATABASE",
     "DIR_RESOURCES",
     "DIR_REPOSITORY",
     "DIR_TMP",
