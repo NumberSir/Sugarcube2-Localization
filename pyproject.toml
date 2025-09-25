@@ -12,6 +12,7 @@ keywords = [
     "sugarcube"
 ]
 dependencies = [
+    "aiosqlite>=0.21.0",
     "dukpy>=0.5.0",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
@@ -21,6 +22,7 @@ dependencies = [
     "pytest>=8.4.1",
     "python-dotenv>=1.1.1",
     "sphinx>=8.1.3",
+    "sqlalchemy[asyncio]>=2.0.43",
     "ujson>=5.10.0",
     "windows-toasts>=1.3.1",
 ]
