@@ -19,30 +19,36 @@ Twinescript File
                ┗━ Plain Text:       except of any elements above
 """
 
-import os
 import re
-
-import ujson as json
 
 from collections import defaultdict
 from pathlib import Path
+
+from sqlalchemy.orm import Session
 from typing import Iterator
 
-from src.config import DIR_DATA
+from src.database import ENGINE
 from src.exceptions import GameRootNotExistException
 from src.log import logger
 
 from src.core.utils import get_all_filepaths
 from src.core.parser.internal import Parser
 from src.core.schema.enum import ModelField, Patterns
-from src.core.schema.model import (
-    WidgetModel, PassageModel, ElementModel,
-)
+from src.core.schema.data_model import WidgetModel, PassageModel, ElementModel
+from src.core.schema.sql_model import BaseTable, PassageModelTable, ElementModelTable
+
 
 
 class Twee3Parser(Parser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        # FIXME
+        BaseTable.metadata.drop_all(ENGINE)
+        BaseTable.metadata.create_all(ENGINE)
+
+        self._suffix = ".twee"
+
         """All filepaths with suffix '.twee'"""
         self._all_filepaths: list[Path] = None
 
@@ -65,8 +71,9 @@ class Twee3Parser(Parser):
     def get_all_filepaths(self) -> Iterator[Path]:
         """Get all twinescript absolute filepaths."""
         if not self.game_root.exists():
+            logger.error(f"Game root does not exist: {self.game_root}")
             raise GameRootNotExistException
-        self.all_filepaths = get_all_filepaths(".twee", self.game_root)
+        self.all_filepaths = get_all_filepaths(self.suffix, self.game_root)
         return self.all_filepaths
 
     """ Passage """
@@ -83,27 +90,29 @@ class Twee3Parser(Parser):
 
         if not all_passages:
             self.all_passages = []
-            self.all_passages_by_passage = {}
+            # self.all_passages_by_passage = {}
             logger.warning("0 passages found x-x.")
             return [], {}
 
         """ Temporarily saved. """
-        os.makedirs(DIR_DATA, exist_ok=True)
-        with open(DIR_DATA / "all_passages.json", "w", encoding="utf-8") as fp:
-            json.dump(
-                [_.model_dump(mode="json") for _ in all_passages],
-                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
+        with Session(ENGINE) as session:
+            session.add_all(
+                PassageModelTable(
+                    filepath=passage_model.filepath.relative_to(self.game_root).__str__(),
+                    title=passage_model.title,
+                    tag=passage_model.tag,
+                    body=passage_model.body,
+                    length=passage_model.length,
+                    widgets=[_.model_dump(mode="json") for _ in passage_model.widgets],
+                )
+                for passage_model in all_passages
             )
+            session.commit()
 
         all_passages_by_passage = {
             passage_model.title: passage_model
             for passage_model in all_passages
         }
-        with open(DIR_DATA / "all_passages_by_passage.json", "w", encoding="utf-8") as fp:
-            json.dump(
-                {k: v.model_dump(mode="json") for k, v in all_passages_by_passage.items()},
-                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
-            )
 
         self.all_passages = all_passages
         self.all_passages_by_passage = all_passages_by_passage
@@ -170,8 +179,8 @@ class Twee3Parser(Parser):
         ]  # 段落主体
 
         for idx, passage_full in enumerate(passage_fulls):
-            tag = passage_tags[idx] or None
-            widgets = self._split_widgets(passage_bodys[idx]) if tag == "widget" else None
+            tag = passage_tags[idx] or ""
+            widgets = self._split_widgets(passage_names[idx], passage_bodys[idx]) if tag == "widget" else []
             all_passages.append(PassageModel(
                 filepath=filepath,
                 title=passage_names[idx].strip(),
@@ -192,26 +201,35 @@ class Twee3Parser(Parser):
         for passage in all_passages:
             all_elements = self._get_element_info(passage, patterns, all_elements)
 
-        self.all_closed_macros_names = self._get_all_closed_macros(all_elements)
-        self.all_closed_tags_names = self._get_all_closed_tags(all_elements)
-        all_elements = self._reclassify_elements(all_elements, self.all_closed_macros_names, self.all_closed_tags_names)
-
-        with open(DIR_DATA / "all_elements.json", "w", encoding="utf-8") as fp:
-            json.dump(
-                [_.model_dump(mode="json") for _ in all_elements],
-                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
-            )
-
         all_elements_by_passage: dict[str, list[ElementModel]] = defaultdict(list)
         for element in all_elements:
             all_elements_by_passage[element.passage].append(element)
         all_elements_by_passage = dict(all_elements_by_passage)
 
-        with open(DIR_DATA / "all_elements_by_passage.json", "w", encoding="utf-8") as fp:
-            json.dump(
-                {k: [v.model_dump(mode="json") for v in vs] for k, vs in all_elements_by_passage.items()},
-                fp, indent=2, ensure_ascii=False, escape_forward_slashes=False
+        self.all_closed_macros_names = self._get_all_closed_macros(all_elements)
+        self.all_closed_tags_names = self._get_all_closed_tags(all_elements)
+        all_elements, all_elements_by_passage = self._reclassify_elements(all_elements_by_passage, self.all_closed_macros_names, self.all_closed_tags_names)
+
+        """ Temporarily saved. """
+        with Session(ENGINE) as session:
+            session.add_all(
+                ElementModelTable(
+                    filepath=element_model.filepath.relative_to(self.game_root).__str__(),
+                    passage=element_model.passage,
+                    widget=element_model.widget,
+                    block=element_model.block,
+                    block_name=element_model.block_name,
+                    block_semantic_key=element_model.block_semantic_key,
+                    type=element_model.type,
+                    body=element_model.body,
+                    pos_start=element_model.pos_start,
+                    pos_end=element_model.pos_end,
+                    length=element_model.length,
+                    level=element_model.level,
+                )
+                for element_model in all_elements
             )
+            session.commit()
 
         self.all_elements = all_elements
         self.all_elements_by_passage = all_elements_by_passage
@@ -663,7 +681,7 @@ class Twee3Parser(Parser):
 
     """ Utility Methods """
     @staticmethod
-    def _split_widgets(passage_body: str) -> list[WidgetModel]:
+    def _split_widgets(passage_name: str, passage_body: str) -> list[WidgetModel]:
         """Split each widget in single widget-passage into parts."""
         widget_pattern = re.compile(rf"""{Patterns.MacroWidget.value.pattern}([\s\S]*?)<</widget>>""")
         result = []
@@ -677,7 +695,8 @@ class Twee3Parser(Parser):
                 body=widget_body,
                 pos_start=match.start(),
                 pos_end=match.end(),
-                length=len(widget_body)
+                length=len(widget_body),
+                passage=passage_name
             ))
         return result
 
@@ -855,57 +874,109 @@ class Twee3Parser(Parser):
         return {macro.body.lstrip("</").rstrip(">") for macro in all_tags if macro.body.startswith("</")}
 
     @staticmethod
-    def _reclassify_elements(all_elements: list[ElementModel], all_closed_macros_names: set[str], all_closed_tags_names: set[str]) -> list[ElementModel]:
+    def _reclassify_elements(all_elements_by_passage: dict[str, list[ElementModel]], all_closed_macros_names: set[str], all_closed_tags_names: set[str]) -> tuple[list[ElementModel], dict[str, list[ElementModel]]]:
         """将元素按照“块”、“内容”重分类为两类，并构建语义化键"""
         """
         {PassageName}
         ||
-        {BlockType}::{BlockName}
-            -
-        {BlockType}::{BlockName}
+        {BlockType}::{BlockName}[{BlockIndex}]
+        -
+        {BlockType}::{BlockName}[{BlockIndex}]
         ...
         """
         _keys = defaultdict(list)
         global_level: int = 0
-        for idx, element in enumerate(all_elements):
-            match element.type:
-                case Patterns.Macro.name:
-                    macro_name = Patterns.Macro.value.match(element.body).groups()[0]
-                    macro_name_open = macro_name.lstrip("/")
-                    if macro_name_open in all_closed_macros_names:
-                        if macro_name == macro_name_open:
-                            all_elements[idx].block = ModelField.MacroBlockHead.name
-                            global_level += 1
-                        else:
-                            all_elements[idx].block = ModelField.MacroBlockTail.name
-                            all_elements[idx].level = global_level  # 先记录层数再减
-                            global_level -= 1
-                        all_elements[idx].block_name = macro_name_open
+        for passage_name, elements in all_elements_by_passage.items():
+            for idx, element in enumerate(elements):
+                match element.type:
+                    case Patterns.Macro.name:
+                        macro_name = Patterns.Macro.value.match(element.body).groups()[0]
+                        macro_name_open = macro_name.lstrip("/")
+                        if macro_name_open in all_closed_macros_names:
+                            if macro_name == macro_name_open:
+                                all_elements_by_passage[passage_name][idx].block = ModelField.MacroBlockHead.name
+                                global_level += 1
+                            else:
+                                all_elements_by_passage[passage_name][idx].block = ModelField.MacroBlockTail.name
+                                all_elements_by_passage[passage_name][idx].level = global_level  # 先记录层数再减
+                                global_level -= 1
+                            all_elements_by_passage[passage_name][idx].block_name = macro_name_open
 
-                case Patterns.Tag.name:
-                    tag_name = Patterns.Tag.value.match(element.body).groups()[0]
-                    tag_name_open = tag_name.lstrip("/")
-                    if tag_name_open in all_closed_tags_names:
-                        if tag_name == tag_name_open:
-                            all_elements[idx].block = ModelField.TagBlockHead.name
-                            global_level += 1
-                        else:
-                            all_elements[idx].block = ModelField.TagBlockTail.name
-                            all_elements[idx].level = global_level  # 先记录层数再减
-                            global_level -= 1
-                        all_elements[idx].block_name = tag_name_open
-            # 层数
-            all_elements[idx].level = global_level if all_elements[idx].level == -1 else all_elements[idx].level
-            # TODO 语义化键
-            # passage_name = element.passage
-            # _keys[passage_name].append(f"{element.type}::{element.block_name}")
-        return all_elements
+                    case Patterns.Tag.name:
+                        tag_name, is_tag_self_close = Patterns.Tag.value.match(element.body).groups()
+                        tag_name_open = tag_name.lstrip("/")
+
+                        # 有些特殊 tag 既能自闭也能不自闭，如 <image>
+                        is_tag_self_close = bool(is_tag_self_close)
+                        if tag_name_open in all_closed_tags_names:
+                            if tag_name == tag_name_open:
+                                if not is_tag_self_close:
+                                    all_elements_by_passage[passage_name][idx].block = ModelField.TagBlockHead.name
+                                    global_level += 1
+                            else:
+                                all_elements_by_passage[passage_name][idx].block = ModelField.TagBlockTail.name
+                                all_elements_by_passage[passage_name][idx].level = global_level  # 先记录层数再减
+                                global_level -= 1
+                            all_elements_by_passage[passage_name][idx].block_name = tag_name_open
+                # 层数
+                all_elements_by_passage[passage_name][idx].level = global_level if all_elements_by_passage[passage_name][idx].level == -1 else all_elements_by_passage[passage_name][idx].level
+
+                # 构建语义化键：
+                # 仅对块首元素构建：
+                _current_element: ElementModel = all_elements_by_passage[passage_name][idx]
+                if _current_element.block in {ModelField.MacroBlockHead.name, ModelField.TagBlockHead.name}:
+                    _semantic_key: str = ""
+                    _semantic_key_idx: int = 0
+                    _have_met_same_level: bool = False
+                    # 从当前元素开始倒序向前找，
+                    for _result_element in all_elements_by_passage[passage_name][:idx][::-1]:
+                        # 仅找块首元素
+                        if _result_element.block not in {ModelField.MacroBlockHead.name, ModelField.TagBlockHead.name}:
+                            continue
+
+                        # 遇到层数大的则跳过 (其他块的内部，无关自己的键)，
+                        if _result_element.level > _current_element.level:
+                            continue
+                        # 遇到首个层数小的，则将自己的键添加在对方之后，并跳出 (跳出包裹了)
+                        elif _result_element.level < _current_element.level:
+                            _semantic_key = f"{_result_element.block_semantic_key}-"
+                            break
+
+                        # 遇到首个同一层数的，判断名称类型
+                        # 遇到首个同一层数且同名同类，则自己的序号为对方的序号+1，此后不再判断同一层数直到跳出
+                        # 若始终没遇到首个同一层数，说明该元素块序号是 [0]，无需额外处理
+                        if _have_met_same_level:
+                            continue
+
+                        if _result_element.block_name == _current_element.block_name and _result_element.type == _current_element.type:
+                            _have_met_same_level = True
+                            _semantic_key_idx = int(_result_element.block_semantic_key.rstrip("]").split("[")[-1]) + 1
+
+                    # 直到遍历完都没有跳出，即该元素为首个块首元素
+                    # 添加文章名称头部
+                    else:
+                        _semantic_key = f"{element.passage}||"
+
+                    # 完整的语义化键
+                    # eg: Upgrade Waiting Room||Macro::if[0]-Macro::silently[1]
+                    all_elements_by_passage[passage_name][idx].block_semantic_key = f"{_semantic_key}{_current_element.type}::{_current_element.block_name}[{_semantic_key_idx}]"
+                    # logger.info(f"[{passage_name}] {all_elements_by_passage[passage_name][idx].block_semantic_key}")
+
+        all_elements = []
+        for elements in all_elements_by_passage.values():
+            all_elements.extend(elements)
+        return all_elements, all_elements_by_passage
 
     @staticmethod
     def _build_semantic_keys():
         """TODO 为每个“头”、“尾”元素构建语义化键"""
 
     """ Getters & Setters """
+
+    @property
+    def suffix(self) -> str:
+        return self._suffix
+
     @property
     def all_filepaths(self) -> list[Path]:
         return self._all_filepaths
@@ -931,20 +1002,20 @@ class Twee3Parser(Parser):
         self._all_passages_by_passage = passages_by_passage
 
     @property
-    def all_elements_by_passage(self) -> dict[str, list[ElementModel]]:
-        return self._all_elements_by_passage
-
-    @all_elements_by_passage.setter
-    def all_elements_by_passage(self, elements_by_passage: dict[str, list[ElementModel]]) -> None:
-        self._all_elements_by_passage = elements_by_passage
-
-    @property
     def all_elements(self) -> list[ElementModel]:
         return self._all_elements
 
     @all_elements.setter
     def all_elements(self, elements: list[ElementModel]) -> None:
         self._all_elements = elements
+
+    @property
+    def all_elements_by_passage(self) -> dict[str, list[ElementModel]]:
+        return self._all_elements_by_passage
+
+    @all_elements_by_passage.setter
+    def all_elements_by_passage(self, elements_by_passage: dict[str, list[ElementModel]]) -> None:
+        self._all_elements_by_passage = elements_by_passage
 
     @property
     def all_closed_macros_names(self) -> set[str]:
@@ -1169,4 +1240,5 @@ __all__ = [
 
 if __name__ == '__main__':
     parser = Twee3Parser()
+    # parser.get_all_passages_info()
     parser.get_all_elements_info()

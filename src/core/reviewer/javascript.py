@@ -7,7 +7,7 @@ from src.log import logger
 from src.exceptions import GameRootNotExistException
 from src.core.reviewer.internal import Reviewer
 from src.core.utils import get_all_filepaths, traceback_detail
-from src.core.schema.model import AcornParserOptions, JSSyntaxErrorModel
+from src.core.schema.data_model import AcornParserOptions, JSSyntaxErrorModel
 
 
 class JavascriptReviewer(Reviewer):

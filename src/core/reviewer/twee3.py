@@ -1,15 +1,20 @@
 import json
-
+from collections import defaultdict
 
 from pathlib import Path
+from sqlalchemy import distinct
+from sqlalchemy.orm import Session
 from typing import Iterator
 
+from src.database import ENGINE
 from src.log import logger
-from src.config import DIR_DATA
 from src.exceptions import GameRootNotExistException
+
 from src.core.reviewer.internal import Reviewer
 from src.core.utils import get_all_filepaths
-from src.core.schema.model import PassageModel, ElementModel
+from src.core.schema.enum import ModelField
+from src.core.schema.data_model import PassageModel, ElementModel
+from src.core.schema.sql_model import PassageModelTable, ElementModelTable
 
 
 class Twee3Reviewer(Reviewer):
@@ -24,28 +29,29 @@ class Twee3Reviewer(Reviewer):
 
     def validate_all_elements(self):
         """检查提取出来的元素是否有遗漏、重复"""
-        with (DIR_DATA / "all_passages_by_passage.json").open("r", encoding="utf-8") as fp:
-            all_passages_by_passage = json.load(fp)
-        all_passages_by_passage_models: dict[str, PassageModel] = {
-            passage: PassageModel.model_validate(content)
-            for passage, content in all_passages_by_passage.items()
-        }
+        with Session(ENGINE) as session:
+            _all_passages = session.query(PassageModelTable).all()
+            all_passages_by_passage_models: dict[str, PassageModel] = {
+                _passage.title: PassageModel.model_validate(_passage, from_attributes=True)
+                for _passage in _all_passages
+            }
 
-        with (DIR_DATA / "all_elements_by_passage.json").open("r", encoding="utf-8") as fp:
-            all_elements_by_passage = json.load(fp)
-        all_elements_by_passage_models: dict[str, list[ElementModel]] = {
-            passage: [
-                ElementModel.model_validate(_)
-                for _ in elements
-            ]
-            for passage, elements in all_elements_by_passage.items()
-        }
+            _all_elements = session.query(ElementModelTable).all()
+            _all_passages_names = session.query(distinct(ElementModelTable.passage)).all()
+            all_elements_by_passage_models: dict[str, list[ElementModel]] = defaultdict(list)
+            for _element in _all_elements:
+                all_elements_by_passage_models[_element.passage].append(
+                    ElementModel.model_validate(_element, from_attributes=True)
+                )
 
         """检查提取元素是否有遗漏"""
-        # validation_order = self._validate_all_elements_order(all_passages_by_passage_models, all_elements_by_passage_models)
+        validation_order = self._validate_all_elements_order(all_passages_by_passage_models, all_elements_by_passage_models)
 
         """检查元素拼接后是否等于原文章"""
         validation_reversible = self._validate_all_elements_reversible(all_passages_by_passage_models, all_elements_by_passage_models)
+
+        """检查文章的元素层级是否正常"""
+        validation_level = self._validate_all_elements_level_in_passage(all_elements_by_passage_models)
 
     @staticmethod
     def _validate_all_elements_order(all_passages_by_passage_models: dict[str, PassageModel], all_elements_by_passage_models: dict[str, list[ElementModel]]) -> dict[str, bool]:
@@ -68,7 +74,7 @@ class Twee3Reviewer(Reviewer):
 
             else:
                 result[passage] = True
-                logger.success(f"'{passage}'提取元素无遗漏")
+                logger.debug(f"'{passage}'提取元素无遗漏")
 
         return result
 
@@ -84,8 +90,27 @@ class Twee3Reviewer(Reviewer):
                 result[passage] = False
                 continue
 
-            logger.success(f"'{passage}'可以复原")
+            logger.debug(f"'{passage}'可以复原")
             result[passage] = True
+
+        return result
+
+    @staticmethod
+    def _validate_all_elements_level_in_passage(all_elements_by_passage_models: dict[str, list[ElementModel]]) -> dict[str, bool]:
+        """正常文章首尾元素层级为0，除非首尾元素为块头尾，此时层级为1"""
+        result = {}
+        for passage, elements in all_elements_by_passage_models.items():
+            _is_head_element_blockhead = elements[0].block in {ModelField.MacroBlockHead.name, ModelField.TagBlockHead.name}
+            _is_head_element_blockhead_and_level_normal = elements[0].level == 1 and _is_head_element_blockhead
+            _is_head_element_plaintext_and_level_normal = elements[0].level == 0 and not _is_head_element_blockhead
+            if not _is_head_element_blockhead_and_level_normal and not _is_head_element_plaintext_and_level_normal:
+                logger.warning(f"'{passage}'首元素层级有误 - level='{elements[0].level}', body='{elements[0].body}'")
+
+            _is_tail_element_blocktail = elements[-1].block in {ModelField.MacroBlockTail.name, ModelField.TagBlockTail.name}
+            _is_tail_element_blocktail_and_level_normal = elements[-1].level == 1 and _is_tail_element_blocktail
+            _is_tail_element_plaintext_and_level_normal = elements[-1].level == 0 and not _is_tail_element_blocktail
+            if not _is_tail_element_blocktail_and_level_normal and not _is_tail_element_plaintext_and_level_normal:
+                logger.warning(f"'{passage}'尾元素层级有误 - level='{elements[-1].level}', body='{elements[-1].body}'")
 
         return result
 

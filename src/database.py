@@ -1,13 +1,13 @@
-from sqlalchemy import create_engine, event
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine
 
-from src.config import settings
 from src.config import DIR_DATABASE
+from src.core.schema.sql_model import BaseTable
 
 
-DATABASE = create_async_engine(f'sqlite+aiosqlite:///{DIR_DATABASE}')
+DIR_DATABASE.mkdir(parents=True, exist_ok=True)
+ENGINE = create_engine(f'sqlite+pysqlite:///{DIR_DATABASE}/db.db')
 
 
 __all__ = [
-    "DATABASE"
+    "ENGINE"
 ]

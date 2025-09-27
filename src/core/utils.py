@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Iterator
 
-from src.core.schema.model import JSSyntaxErrorModel
+from src.core.schema.data_model import JSSyntaxErrorModel
 
 
 def get_all_filepaths(suffix: str, directory: Path) -> Iterator[Path]:
