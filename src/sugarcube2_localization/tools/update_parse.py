@@ -3,9 +3,9 @@ import time
 
 import ujson as json
 
-from src.config import DIR_DATA
-from src.log import logger
-from src.toast import Toaster
+from sugarcube2_localization.config import DIR_DATA
+from sugarcube2_localization.log import logger
+from sugarcube2_localization.toast import Toaster
 
 
 class UpdateParse:
@@ -227,7 +227,7 @@ class UpdateParse:
 
 
 if __name__ == '__main__':
-    from src.config import DIR_RESOURCES
+    from sugarcube2_localization.config import DIR_RESOURCES
     start = time.time()
 
     update = UpdateParse()

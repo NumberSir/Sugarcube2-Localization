@@ -5,4 +5,4 @@
 .env
 
 # Special
-/src/core/reviewer/js_modules/
+/src/sugarcube2_localization/core/reviewer/js_modules/

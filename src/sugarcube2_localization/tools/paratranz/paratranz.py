@@ -4,7 +4,7 @@ from zipfile import ZipFile
 
 import httpx
 
-from src.config import settings, DIR_TMP
+from sugarcube2_localization.config import settings, DIR_TMP
 
 class Paratranz:
     def __init__(self, client: httpx.AsyncClient):

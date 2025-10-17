@@ -36,11 +36,14 @@ package = false
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-    ".env",
     ".venv",
     ".idea",
     ".vscode",
-    "repositories"
+    "data",
+    "repositories",
+    "tests",
+
+    ".env",
 ]
 
 [tool.hatch.build.targets.wheel]

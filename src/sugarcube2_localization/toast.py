@@ -6,7 +6,7 @@ from pathlib import Path
 
 from windows_toasts import WindowsToaster, Toast, ToastDisplayImage, ToastImagePosition
 
-from src.config import settings
+from sugarcube2_localization.config import settings
 
 
 class Toaster:

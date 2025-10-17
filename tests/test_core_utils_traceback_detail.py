@@ -2,7 +2,7 @@
 
 import pytest
 from types import SimpleNamespace
-from src.core.utils import traceback_detail
+from sugarcube2_localization.core.utils import traceback_detail
 
 class DummyLoc:
     def __init__(self, line, column):

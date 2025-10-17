@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger as logger_
 
-from src.config import settings, DIR_LOG
+from sugarcube2_localization.config import settings, DIR_LOG
 
 
 DIR_LOG.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Iterator
 
-from src.config import DIR_DOL
+from sugarcube2_localization.config import DIR_DOL
 
 
 class Reviewer:

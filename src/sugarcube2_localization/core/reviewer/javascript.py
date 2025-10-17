@@ -3,11 +3,11 @@ import dukpy
 from pathlib import Path
 from typing import Iterator
 
-from src.log import logger
-from src.exceptions import GameRootNotExistException
-from src.core.reviewer.internal import Reviewer
-from src.core.utils import get_all_filepaths, traceback_detail
-from src.core.schema.data_model import AcornParserOptions, JSSyntaxErrorModel
+from sugarcube2_localization.log import logger
+from sugarcube2_localization.exceptions import GameRootNotExistException
+from sugarcube2_localization.core.reviewer.internal import Reviewer
+from sugarcube2_localization.core.utils import get_all_filepaths, traceback_detail
+from sugarcube2_localization.core.schema.data_model import AcornParserOptions, JSSyntaxErrorModel
 
 
 class JavascriptReviewer(Reviewer):
@@ -23,9 +23,9 @@ class JavascriptReviewer(Reviewer):
         dukpy.install_jspackage(
             package_name='acorn',
             version=None,
-            modulesdir=Path('.') / "js_modules",
+            modulesdir=Path('') / "js_modules",
         )
-        self.interpreter.loader.register_path(Path('.') / 'js_modules' / 'acorn' / 'dist')
+        self.interpreter.loader.register_path(Path('') / 'js_modules' / 'acorn' / 'dist')
         self.parser_options = AcornParserOptions()
 
     def get_all_filepaths(self) -> Iterator[Path]:

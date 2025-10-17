@@ -16,14 +16,14 @@ class WidgetModel(_BaseModelExtraAllowed):
     <</widget>>
     (POS_END)
     """
-    name: str = Field(default="MISSING_NAME")
+    name: str | None = Field(default=None)
     # args: list | None = Field(default_factory=list)  # TODO
-    body: str = Field(default="MISSING_BODY")
+    body: str | None = Field(default=None)
     pos_start: int = Field(default=-1)
     pos_end: int = Field(default=-1)
     length: int = Field(default=-1)
 
-    passage: str = Field(default="MISSING_PASSAGE")
+    passage: str | None = Field(default=None)
 
 
 class PassageModel(_BaseModelExtraAllowed):
@@ -32,9 +32,9 @@ class PassageModel(_BaseModelExtraAllowed):
     BODY (LENGTH)
     """
     filepath: Path = Field(...)
-    title: str = Field(default="MISSING_TITLE")
-    tag: str = Field(default="")
-    body: str = Field(default="MISSING_BODY")
+    title: str | None = Field(default=None)
+    tag: str | None = Field(default=None)
+    body: str | None = Field(default=None)
     length: int = Field(default=-1)
     widgets: list[WidgetModel] | None = Field(default_factory=list)
 
@@ -69,14 +69,16 @@ class PassageModel(_BaseModelExtraAllowed):
 
 class ElementModel(_BaseModelExtraAllowed):
     """Basic element constitutes each passage."""
-    filepath: Path = Field(default="MISSING_FILEPATH")
-    passage: str = Field(default="MISSING_PASSAGE")
-    widget: str = Field(default="")
-    block: str = Field(default="", description="该元素是否为块的首尾，否则为填充文本")
-    block_name: str = Field(default="", description="仅当为块首尾时，存放其名称")
-    block_semantic_key: str = Field(default="", description="仅当为块首尾时，存放其语义化键名")
-    type: str = Field(default="MISSING_TYPE")
-    body: str = Field(default="MISSING_BODY")
+    filepath: Path = Field(...)
+    passage: str = Field(...)
+    widget: str | None = Field(default=None)
+    block: str | None = Field(default=None, description="该元素是否为块的首尾，否则为填充文本")
+    block_name: str | None = Field(default=None, description="仅当为块首尾时，存放其名称")
+    block_semantic_key: str | None = Field(default=None, description="仅当为块首尾时，存放其语义化键名")
+    block_semantic_key_hash: str | None = Field(default=None, description="语义化键名散列处理，剪短储存长度")
+    type: str | None = Field(default=None)
+    body: str | None = Field(default=None)
+    arguments: str | None = Field(default=None, description="仅当为MACRO时，存放其参数")
     # body_desugared: str = Field(default="MISSING_DESUGARED")
     pos_start: int = Field(default=-1)
     pos_end: int = Field(default=-1)

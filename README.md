@@ -10,14 +10,18 @@
 ```text
 📁root
 ┣━ 📁data
+┃  ┣━ 📁database
 ┃  ┣━ 📁log
 ┃  ┗━ 📁tmp
 ┣━ 📁repositories
 ┃  ┣━ 📁degrees-of-lewdity
-┃  ┗━ 📁degrees-of-lewdity-plus
+┃  ┣━ 📁degrees-of-lewdity-plus
+┃  ┣━ 📁sugarcube-2
+┃  ┗━ 📁sugarcube-2-vrelnir
 ┣━ 📁resource
 ┃  ┗━ 📁img
 ┣━ 📁src
+┣━ 📁tests
 ┣━ ⚙️.env
 ┣━ ⚙️.env.template
 ┣━ ⚙️.gitmodules

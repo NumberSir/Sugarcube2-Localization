@@ -1,4 +1,3 @@
-import json
 from collections import defaultdict
 
 from pathlib import Path
@@ -6,15 +5,15 @@ from sqlalchemy import distinct
 from sqlalchemy.orm import Session
 from typing import Iterator
 
-from src.database import ENGINE
-from src.log import logger
-from src.exceptions import GameRootNotExistException
+from sugarcube2_localization.database import ENGINE
+from sugarcube2_localization.log import logger
+from sugarcube2_localization.exceptions import GameRootNotExistException
 
-from src.core.reviewer.internal import Reviewer
-from src.core.utils import get_all_filepaths
-from src.core.schema.enum import ModelField
-from src.core.schema.data_model import PassageModel, ElementModel
-from src.core.schema.sql_model import PassageModelTable, ElementModelTable
+from sugarcube2_localization.core.reviewer.internal import Reviewer
+from sugarcube2_localization.core.utils import get_all_filepaths
+from sugarcube2_localization.core.schema.enum import ModelField
+from sugarcube2_localization.core.schema.data_model import PassageModel, ElementModel
+from sugarcube2_localization.core.schema.sql_model import PassageModelTable, ElementModelTable
 
 
 class Twee3Reviewer(Reviewer):

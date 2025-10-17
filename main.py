@@ -3,10 +3,10 @@ import time
 
 import httpx
 
-from src.tools.paratranz import Paratranz
-from src.config import settings
-from src.log import logger
-from src.toast import Toaster
+from sugarcube2_localization.tools.paratranz import Paratranz
+from sugarcube2_localization.config import settings
+from sugarcube2_localization.log import logger
+from sugarcube2_localization.toast import Toaster
 
 
 async def main():
