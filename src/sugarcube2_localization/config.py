@@ -35,7 +35,7 @@ class FilepathSettings(BaseSettings):
     """About files / directories"""
     model_config = SettingsConfigDict(env_prefix="PATH_")
 
-    root: Path = Field(default=Path(__file__).parent.parent)
+    root: Path = Field(default=Path(__file__).parent.parent.parent)
     data: Path = Field(default=Path("data"))
     log: Path = Field(default=Path("data/log"))
     database: Path = Field(default=Path("data/database"))
