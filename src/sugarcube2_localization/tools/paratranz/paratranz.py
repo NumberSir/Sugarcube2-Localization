@@ -1,6 +1,7 @@
 import contextlib
 import os
 from zipfile import ZipFile
+from enum import Enum, auto
 
 import httpx
 
@@ -28,11 +29,11 @@ class Paratranz:
         url = f"{self.base_url}/projects/{self._project_id}/artifacts/download"
         headers = {"Authorization": settings.paratranz.token}
         content = (await self.client.get(url, headers=headers, follow_redirects=True)).content
-        with open(DIR_TMP / f"paratranz_export.zip", "wb") as fp:
+        with (DIR_TMP / "paratranz_export.zip").open("wb") as fp:
             fp.write(content)
 
     async def _extract_artifacts(self):
-        with ZipFile(DIR_TMP / f"paratranz_export.zip") as zfp:
+        with ZipFile(DIR_TMP / "paratranz_export.zip") as zfp:
             zfp.extractall(settings.filepath.paratranz)
 
     @property
@@ -46,6 +47,23 @@ class Paratranz:
     @property
     def project_id(self) -> int:
         return self._project_id
+
+
+class RequestMethod(Enum):
+	GET = auto()
+	HEAD = auto()
+	DELETE = auto()
+	POST = auto()
+	PUT = auto()
+	PATCH = auto()
+	OPTIONS = auto()
+
+class ParatranzApi:
+	def __init__(self) -> None:
+		...
+
+	async def call_api(self, method: str = RequestMethod.GET.name, url: str = "", headers: dict = None, body: dict = None, params: dict = None, timeout: int = None):
+		...
 
 
 __all__ = [
