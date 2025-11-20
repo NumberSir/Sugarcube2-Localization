@@ -5,23 +5,23 @@ from sugarcube2_localization.core.schema.data_model import JSSyntaxErrorModel
 
 
 def get_all_filepaths(suffix: str, directory: Path) -> Iterator[Path]:
-    """
-    Get all specified absolute filepaths.
+	"""
+	Get all specified absolute filepaths.
 
-    Parameters
-    ----------
-    suffix : str
-        File suffix needed.
-    directory : Path
-        Directory to get files from.
+	Parameters
+	----------
+	suffix : str
+		File suffix needed.
+	directory : Path
+		Directory to get files from.
 
-    Returns
-    -------
-    Iterator[Path]
-        All filepaths in given directory with given suffix.
+	Returns
+	-------
+	Iterator[Path]
+		All filepaths in given directory with given suffix.
 
-    """
-    return directory.glob(f"**/*{suffix}")
+	"""
+	return directory.glob(f"**/*{suffix}")
 
 
 def traceback_detail(js_code: str, error: JSSyntaxErrorModel) -> tuple[str, str]:
@@ -238,6 +238,6 @@ def traceback_detail(js_code: str, error: JSSyntaxErrorModel) -> tuple[str, str]
 
 
 __all__ = [
-    "get_all_filepaths",
-    "traceback_detail",
+	"get_all_filepaths",
+	"traceback_detail",
 ]
