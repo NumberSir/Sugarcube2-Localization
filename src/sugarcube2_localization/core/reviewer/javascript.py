@@ -3,6 +3,7 @@ import dukpy
 from pathlib import Path
 from typing import Iterator
 
+from sugarcube2_localization.config import DIR_DATA
 from sugarcube2_localization.log import logger
 from sugarcube2_localization.exceptions import GameRootNotExistException
 from sugarcube2_localization.core.reviewer.internal import Reviewer
@@ -13,6 +14,9 @@ from sugarcube2_localization.core.schema.data_model import AcornParserOptions, J
 class JavascriptReviewer(Reviewer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        self._logger = logger.bind(project_name="JSR")
+
         self._interpreter: dukpy.JSInterpreter = dukpy.JSInterpreter()
         self._parser_options: AcornParserOptions | None = None
 
@@ -23,9 +27,9 @@ class JavascriptReviewer(Reviewer):
         dukpy.install_jspackage(
             package_name='acorn',
             version=None,
-            modulesdir=Path('') / "js_modules",
+            modulesdir=DIR_DATA / "node_modules",
         )
-        self.interpreter.loader.register_path(Path('') / 'js_modules' / 'acorn' / 'dist')
+        self.interpreter.loader.register_path(DIR_DATA / 'node_modules' / 'acorn' / 'dist')
         self.parser_options = AcornParserOptions()
 
     def get_all_filepaths(self) -> Iterator[Path]:
@@ -37,7 +41,6 @@ class JavascriptReviewer(Reviewer):
     def validate_basic_syntax(self):
         """https://github.com/acornjs/acorn/tree/master/acorn/"""
         for filepath in self.get_all_filepaths():
-            logger.bind(filepath=filepath).debug("validating")
             with filepath.open("r", encoding="utf-8") as fp:
                 js_code = fp.read()
 
@@ -50,25 +53,26 @@ class JavascriptReviewer(Reviewer):
                 try {
                     return acorn.parse(dukpy['js_code'], options);
                 } catch (e) {
-                    if (!(e instanceof SyntaxError)) {
-                        throw e;
-                    } else {
-                        return Object.assign({error: true}, e)
-                    }
+                    return Object.assign({error: true}, e)
                 }
             }
+            
             validate();
             """
 
-            result = self.interpreter.evaljs(code=validation, js_code=js_code, options=self.parser_options.model_dump())
+            result = self.interpreter.evaljs(
+	            code=validation,
+	            js_code=js_code,
+	            options=self.parser_options.model_dump()
+            )
             if "error" not in result:  # Syntax error
-                logger.bind(filepath=filepath).debug("Javascript syntax validation pass.")
+                self.logger.bind(filepath=filepath).debug("JavaScript 语法无错误")
                 continue
 
             error_msg, error_pointer = traceback_detail(js_code=js_code, error=JSSyntaxErrorModel(**result))
-            logger.bind(filepath=filepath).error(f"Javascript syntax error {result['loc']['line'], result['loc']['column']}")
-            logger.error(error_msg)
-            logger.error(error_pointer)
+            self.logger.bind(filepath=filepath).error(f"JavaScript 语法有误：{result['loc']['line'], result['loc']['column']}")
+            self.logger.error(error_msg)
+            self.logger.error(error_pointer)
 
     @property
     def interpreter(self) -> dukpy.JSInterpreter:
@@ -90,5 +94,4 @@ __all__ = [
 
 if __name__ == '__main__':
     reviewer = JavascriptReviewer()
-    paths = reviewer.get_all_filepaths()
     reviewer.validate_basic_syntax()

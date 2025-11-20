@@ -12,31 +12,38 @@ import os
 import shutil
 
 from contextlib import suppress
+from loguru._logger import Logger
 from pathlib import Path
 from typing import Iterator
 
 from sugarcube2_localization.config import DIR_DOL
+from sugarcube2_localization.log import logger
 
 
 class Parser:
-    def __init__(self, game_root: Path = DIR_DOL):
-        self._game_root: Path = game_root       # Root path for the game needed to be localized, DoL as default
+	def __init__(self, game_root: Path = DIR_DOL):
+		self._game_root: Path = game_root       # Root path for the game needed to be localized, DoL as default
+		self._logger = logger
 
-    @staticmethod
-    def clean(*filepaths: Path):
-        for fp in filepaths:
-            with suppress(FileNotFoundError):
-                shutil.rmtree(fp)
-            os.makedirs(fp, exist_ok=True)
+	@staticmethod
+	def clean(*filepaths: Path):
+		for fp in filepaths:
+			with suppress(FileNotFoundError):
+				shutil.rmtree(fp)
+			os.makedirs(fp, exist_ok=True)
 
-    def get_all_filepaths(self) -> Iterator[Path]:
-        raise NotImplementedError
+	def get_all_filepaths(self) -> Iterator[Path]:
+		raise NotImplementedError
 
-    @property
-    def game_root(self) -> Path:
-        return self._game_root
+	@property
+	def game_root(self) -> Path:
+		return self._game_root
+
+	@property
+	def logger(self) -> Logger:
+		return self._logger
 
 
 __all__ = [
-    "Parser",
+	"Parser",
 ]
