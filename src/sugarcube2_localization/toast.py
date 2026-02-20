@@ -1,6 +1,7 @@
 """Notify you after the script running done."""
 
 import platform
+import subprocess
 
 from pathlib import Path
 
@@ -27,12 +28,18 @@ class Toaster:
         toast_main.show_toast(toast_body)
 
     def _macos(self):
-        """TODO"""
-        ...
+        """macOS native notification via osascript"""
+        safe_title = self.title.replace('"', '\\"')
+        safe_body = self.body.replace('"', '\\"')
+        script = f'display notification "{safe_body}" with title "{safe_title}"'
+        subprocess.run(["osascript", "-e", script], check=False)
 
     def _linux(self):
-        """TODO"""
-        ...
+        """Linux notification via libnotify (notify-send)"""
+        cmd = ["notify-send", self.title, self.body]
+        if self.logo and self.logo.exists():
+            cmd.extend(["-i", str(self.logo.absolute())])
+        subprocess.run(cmd, check=False)
 
     def notify(self):
         match platform.system().lower():
