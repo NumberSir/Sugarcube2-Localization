@@ -9,68 +9,76 @@ load_dotenv()
 
 
 class ProjectSettings(BaseSettings):
-    """About this project"""
-    model_config = SettingsConfigDict(env_prefix="PROJECT_")
+	"""About this project"""
+	model_config = SettingsConfigDict(env_prefix="PROJECT_")
 
-    name: str = Field(default="Sugarcube2-Localization")
-    version: str = Field(default="0.0.1")
-    username: str = Field(default="Anonymous")
-    email: str = Field(default="anonymous@email.com")
-    log_level: str = Field(default="INFO")
-    log_format: str = Field(
-        default="<g>{time:HH:mm:ss}</g> | [<lvl>{level:^7}</lvl>] | {extra[project_name]}{message:<35}"
-    )
+	name: str = Field(default="Sugarcube2-Localization")
+	version: str = Field(default="0.0.1")
+	username: str = Field(default="Anonymous")
+	email: str = Field(default="anonymous@email.com")
+	log_level: str = Field(default="INFO")
+	log_format: str = Field(
+		default="<g>{time:HH:mm:ss}</g> | [<lvl>{level:^7}</lvl>] | {extra[project_name]}{message:<35}"
+	)
 
-    @property
-    def user_agent(self) -> str:
-        return (
-            f"{self.username}/"
-            f"{self.name}/"
-            f"{self.version} "
-            f"({self.email})"
-        )
+	@property
+	def user_agent(self) -> str:
+		return (
+			f"{self.username}/"
+			f"{self.name}/"
+			f"{self.version} "
+			f"({self.email})"
+		)
 
 
 class FilepathSettings(BaseSettings):
-    """About files / directories"""
-    model_config = SettingsConfigDict(env_prefix="PATH_")
+	"""About files / directories"""
+	model_config = SettingsConfigDict(env_prefix="PATH_")
 
-    root: Path = Field(default=Path(__file__).parent.parent.parent)
-    data: Path = Field(default=Path("data"))
-    log: Path = Field(default=Path("data/log"))
-    database: Path = Field(default=Path("data/database"))
-    paratranz: Path = Field(default=Path("data/paratranz"))
-    repo: Path = Field(default=Path("repositories"))  # hard coded
-    resources: Path = Field(default=Path("resources"))
-    tmp: Path = Field(default=Path("data/tmp"))
+	root: Path = Field(default=Path(__file__).parent.parent.parent)
+	data: Path = Field(default=Path("data"))
+	log: Path = Field(default=Path("data/log"))
+	database: Path = Field(default=Path("data/database"))
+	paratranz: Path = Field(default=Path("data/paratranz"))
+	repo: Path = Field(default=Path("repositories"))  # hard coded
+	resources: Path = Field(default=Path("resources"))
+	tmp: Path = Field(default=Path("data/tmp"))
 
 
 class DefaultGames(Enum):
-    degrees_of_lewdity = "degrees-of-lewdity"
-    degrees_of_lewdity_plus = "degrees-of-lewdity-plus"
+	degrees_of_lewdity = "degrees-of-lewdity"
+	degrees_of_lewdity_plus = "degrees-of-lewdity-plus"
 
 
 class GitHubSettings(BaseSettings):
-    """About GitHub"""
-    model_config = SettingsConfigDict(env_prefix='GITHUB_')
+	"""About GitHub"""
+	model_config = SettingsConfigDict(env_prefix='GITHUB_')
 
-    access_token: str = Field(default=None)
+	access_token: str = Field(default=None)
 
 
 class ParatranzSettings(BaseSettings):
-    """About Paratranz"""
-    model_config = SettingsConfigDict(env_prefix='PARATRANZ_')
+	"""About Paratranz"""
+	model_config = SettingsConfigDict(env_prefix='PARATRANZ_')
 
-    project_id: int = Field(default=None)
-    token: str = Field(default=None)
+	project_id: int = Field(default=None)
+	token: str = Field(default=None)
+
+
+class MediawikiSettings(BaseSettings):
+	"""About Mediawiki"""
+	model_config = SettingsConfigDict(env_prefix='MEDIAWIKI_')
+
+	user_list_limit: int = Field(default=1000, description="用户贡献页面，单页显示用户数量上限")
 
 
 class Settings(BaseSettings):
-    """Main settings"""
-    paratranz: ParatranzSettings = ParatranzSettings()
-    github: GitHubSettings = GitHubSettings()
-    project: ProjectSettings = ProjectSettings()
-    filepath: FilepathSettings = FilepathSettings()
+	"""Main settings"""
+	paratranz: ParatranzSettings = ParatranzSettings()
+	github: GitHubSettings = GitHubSettings()
+	project: ProjectSettings = ProjectSettings()
+	filepath: FilepathSettings = FilepathSettings()
+	mediawiki: MediawikiSettings = MediawikiSettings()
 
 
 settings = Settings()
@@ -85,23 +93,23 @@ DIR_DOL = DIR_REPOSITORY / DefaultGames.degrees_of_lewdity.value
 DIR_DOLP = DIR_REPOSITORY / DefaultGames.degrees_of_lewdity_plus.value
 
 __all__ = [
-    "Settings",
-    "settings",
-    "DefaultGames",
+	"Settings",
+	"settings",
+	"DefaultGames",
 
-    "DIR_ROOT",
-    "DIR_DATA",
-    "DIR_LOG",
-    "DIR_DATABASE",
-    "DIR_RESOURCES",
-    "DIR_REPOSITORY",
-    "DIR_TMP",
+	"DIR_ROOT",
+	"DIR_DATA",
+	"DIR_LOG",
+	"DIR_DATABASE",
+	"DIR_RESOURCES",
+	"DIR_REPOSITORY",
+	"DIR_TMP",
 
-    "DIR_DOL",
-    "DIR_DOLP",
+	"DIR_DOL",
+	"DIR_DOLP",
 ]
 
 if __name__ == '__main__':
-    from pprint import pprint
+	from pprint import pprint
 
-    pprint(Settings().model_dump())
+	pprint(Settings().model_dump())

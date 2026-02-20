@@ -25,25 +25,25 @@ def get_all_filepaths(suffix: str, directory: Path) -> Iterator[Path]:
 
 
 def traceback_detail(js_code: str, error: JSSyntaxErrorModel) -> tuple[str, str]:
-    """
-    Javascript traceback details.
+	"""
+	Javascript traceback details.
 
-    Parameters
-    ----------
-    js_code : str
-        Javascript code which has errors.
-    error : JSSyntaxErrorModel
-        Model contains error location / position.
+	Parameters
+	----------
+	js_code : str
+		Javascript code which has errors.
+	error : JSSyntaxErrorModel
+		Model contains error location / position.
 
-    Returns
-    -------
-    tuple[str, str]
-        Javascript traceback details, including the error line and an indicator.
-    """
-    return (
-        f"{js_code.splitlines()[error.loc.line-1]}".rstrip('\n'),
-        f"{'^': >{error.loc.column+1}}"
-    )
+	Returns
+	-------
+	tuple[str, str]
+		Javascript traceback details, including the error line and an indicator.
+	"""
+	return (
+		f"{js_code.splitlines()[error.loc.line-1]}".rstrip('\n'),
+		f"{'^': >{error.loc.column+1}}"
+	)
 
 
 # def eval_javascript(js_code: str, js_output: str=None, js_options: dict=None):
